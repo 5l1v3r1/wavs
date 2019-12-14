@@ -11,16 +11,13 @@ import requests
 import argparse
 import unittest
 
-# aesthetics imports
-try:
-    import colorama
-except:
-    print('colorama not installed. use pip install -r requirements.txt')
+# my imports
+from utils import success, warning, info
 
 # argument parsing
 arg_parser = argparse.ArgumentParser()
 arg_parser.add_argument('host', help='The url of the web application to be scanned')
-arg_parser.add_argument('--port', type=int, help='The port the web application is running on')
+arg_parser.add_argument('--port', type=int, default=80, help='The port the web application is running on')
 arg_parser.add_argument('--test')
 args = arg_parser.parse_args()
 
@@ -36,10 +33,16 @@ class WebScanner():
         #TODO: need to try random long string to see if we get 200
         # that means the application is returning 200 for everything
         # need to fuzz
+        should_not_find = 'lkjaslkdjaslkdjaklsjdakl897u9821khad'
+        resp = requests.get('http://{}:{}/{}'.format(self.host, self.port, should_not_find))
+
+        if resp.status_code == 200:
+            warning('/{} returned code 200. Should swith to fuzzing'.format(should_not_find))
 
         for word in open(wordlist_path, 'r').readlines():
-            word = word.rstrip()
-            if word[0] == '#':
+            word = word.strip().strip('\n')
+
+            if word and word[0] == '#':
                 continue
             resp = requests.get('http://{}:{}/{}'.format(self.host, self.port, word))
 

@@ -1,15 +1,17 @@
 import requests
 
-from utils import success, warning, info
-from utils import db_get_wordlist
 from datetime import datetime
 from multiprocessing import Pool
 from functools import partial
 
+from utils import success, warning, info
+from utils import db_get_wordlist
+from utils import http_get_request
+
 class DirectoryScanner:
     __wavs_mod__ = True
 
-    self.info = {
+    info = {
         "name": "Directory Scanner",
         "desc": "Scans a web application for directories",
         "author": "@ryan_ritchie"
@@ -20,7 +22,8 @@ class DirectoryScanner:
 
         self.options = {
             # the number of threads the directory scanner should use
-            "numberOfThreads": 8
+            "numberOfThreads": 8,
+            "verbose": 1
         }
 
     def _run_thread(self, word):
@@ -31,17 +34,17 @@ class DirectoryScanner:
             :return (string):   the directory if found
         """
         # GET request to the directory
-        resp = requests.get('http://{}:{}/{}/'.format(self.main.host,
-                                                      self.main.port,
-                                                      word))
+        url = f'http://{self.main.host}:{self.main.port}/{word}/'
+        resp = http_get_request(url)
 
         # check if the response code is a success code
         if (resp.status_code in self.main.success_codes):
+            success(word)
             return word
 
     def _run_module(self):
         start_time = datetime.now()
-        info('Starting scan on {}:{} at {}'.format(self.main.host,
+        info('Starting directory scan on {}:{} at {}'.format(self.main.host,
                                                    self.main.port,
                                                    datetime.strftime(start_time,
                                                     '%d/%b/%Y %H:%M:%S')))
@@ -66,7 +69,7 @@ class DirectoryScanner:
         thread_pool.close()
         thread_pool.join()
 
-        self.main.directories_found = directories_found
+        self.main.scan_results['directories_found'].extend(directories_found)
 
         end_time = datetime.now()
         info('Directory search completed. Elapsed: {}'.format(end_time - start_time))

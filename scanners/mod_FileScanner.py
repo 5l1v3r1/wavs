@@ -1,15 +1,17 @@
 import requests
 
-from utils import success, warning, info
-from utils import db_get_wordlist
 from datetime import datetime
 from multiprocessing import Pool
 from functools import partial
 
+from utils import success, warning, info
+from utils import db_get_wordlist
+from utils import http_get_request
+
 class FileScanner:
     __wavs_mod__ = True
 
-    self.info = {
+    info = {
         "name": "File Scanner",
         "desc": "Scans for files once ",
         "author": "@ryan_ritchie"
@@ -21,7 +23,12 @@ class FileScanner:
         self.options = {
             # the number of threads the directory scanner should use
             "numberOfThreads": 8,
-            "directories": ['']
+
+            # how much information should it output
+            "verbose": 1,
+
+            # what directories should it scan for files in
+            "directories": self.main.scan_results['directories_found']
         }
 
     def _parse_options(self, options):
@@ -48,7 +55,7 @@ class FileScanner:
         # loop through file extensions to be searched for
         for ext in self.main.file_extensions:
             # make the GET request for the file
-            resp = requests.get(url + '{}{}'.format(word, ext))
+            resp = http_get_request(url + f'{word}{ext}')
 
             # check if the response code is a success code
             if (resp.status_code in self.main.success_codes):
@@ -61,6 +68,9 @@ class FileScanner:
 
         # only return a list if files were actually found
         if found_files:
+            if self.options['verbose']:
+                for ffile in found_files:
+                    success(ffile)
             return found_files
 
     def _run_module(self):
@@ -69,6 +79,12 @@ class FileScanner:
 
             :return:
         """
+        start_time = datetime.now()
+        info('Starting file scan on {}:{} at {}'.format(self.main.host,
+                                                   self.main.port,
+                                                   datetime.strftime(start_time,
+                                                    '%d/%b/%Y %H:%M:%S')))
+
         # TODO: create a file wordlist
         word_list = db_get_wordlist('directory', 'general')
 
@@ -93,5 +109,8 @@ class FileScanner:
         thread_pool.close()
         thread_pool.join()
 
-        self.main.files_found = files_found
-        print(files_found)
+        self.main.scan_results['files_found'].extend(files_found)
+
+        end_time = datetime.now()
+        info('File search completed. Elapsed: {}'.format(end_time - start_time))
+

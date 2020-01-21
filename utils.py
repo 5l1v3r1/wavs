@@ -8,6 +8,8 @@
 import sqlite3
 import importlib
 import inspect
+import requests
+import requests.exceptions
 
 from sqlite3 import Error
 
@@ -40,12 +42,35 @@ def load_module(package_name, class_name):
 
 ###############################################################################
 #                                                                             #
+#                            HTTP UTIL FUNCTIONS                              #
+#                                                                             #
+###############################################################################
+
+def http_get_request(url):
+    try:
+        r = requests.get(url)
+
+    except (requests.exceptions.ConnectionError, requests.exceptions.Timeout):
+        warning(f'Server at {url} is not responding')
+        return 1
+
+    return r
+
+
+###############################################################################
+#                                                                             #
 #                           PRINT UTIL FUNCTIONS                              #
 #                                                                             #
 ###############################################################################
 
 def _print_status(message, type):
     assert(type in ['success', 'warning', 'info'])
+
+    # TODO: load in verbosity option from config file
+    # 0 - quiet mode (default): dont print anything
+    # 1 - print mode: print messages to stdout
+    # 2 - log mode: print to stdout and log file
+    VERBOSITY = 1
 
     if type == 'success':
         colour = Fore.GREEN
@@ -57,7 +82,9 @@ def _print_status(message, type):
         colour = Fore.BLUE
         status_code = '*'
 
-    print(colour + '[{}] {}'.format(status_code, message))
+    # TODO: sort this out ->
+    if VERBOSITY or type == 'warning':
+        print(colour + '[{}] {}'.format(status_code, message))
 
 def success(message):
     _print_status(message, 'success')

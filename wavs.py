@@ -38,13 +38,18 @@ class WebScanner():
         # TODO: add way to change success codes
         self.success_codes = [200, 201, 202, 203, 204, 301, 302, 303, 304]
         self.file_extensions = ['.html', '.php']
+
+        # TODO: find a better way to return module results
         self.directories_found = []
+        self.files_found = []
 
         # seed the random number generator
         random.seed(datetime.now())
 
+        # TODO: load modules in from config file
         self.modules = []
         self.modules.append(load_module("scanners", "DirectoryScanner")(self))
+        self.modules.append(load_module("scanners", "FileScanner")(self))
 
     def run_modules(self):
         for module in self.modules:
@@ -71,74 +76,6 @@ class WebScanner():
             warning('/{} returned code 200. Should swith to fuzzing'.format(should_not_find))
 
         # TODO: switch to fuzzing mode?
-
-
-    def _thread_file_scan(self, directory, word):
-        """ makes a HTTP GET request to check if a file exists. to be used as
-            a thread.
-
-            :param directory:       the directory to search for files in
-            :param word:            the file name to search for
-            :return (list):         a list of found files
-        """
-        found_files = []
-
-        # construct the url to be used in the GET request
-        url = 'http://{}:{}/'.format(self.host, self.port)
-        if directory:
-            url += (directory + '/')
-
-        # loop through file extensions to be searched for
-        for ext in self.file_extensions:
-            # make the GET request for the file
-            resp = requests.get(url + '{}{}'.format(word, ext))
-
-            # check if the response code is a success code
-            if (resp.status_code in self.success_codes):
-                # if the directory is not an empty string i.e. if it is not
-                # searching the root directory
-                if directory:
-                    found_files.append('{}/{}{}'.format(directory, word, ext))
-                else:
-                    found_files.append('{}{}'.format(word, ext))
-
-        # only return a list if files were actually found
-        if found_files:
-            return found_files
-
-
-    def _file_scanner(self):
-        """ method that loads in a file wordlist and uses thread to search for
-            the files
-
-            :return:
-        """
-        # TODO: create a file wordlist
-        word_list = db_get_wordlist('directory', 'general')
-
-        # create the threads
-        # need to let user change the number of threads used
-        thread_pool = Pool(8)
-
-        self.files_found = []
-
-        # loop through the list of directories found by _dir_scanner
-        for directory in self.directories_found:
-            # use partial to allow more parameters passed to map
-            func = partial(self._thread_file_scan, directory)
-
-            # use threads to scan for files
-            self.files_found += thread_pool.map(func, word_list)
-
-        # remove None results
-        self.files_found = [file for file in self.files_found if file != None]
-        self.files_found = [file for sublist in self.files_found for file in sublist]
-
-        thread_pool.close()
-        thread_pool.join()
-
-        print(self.files_found)
-
 
 
 class Test(unittest.TestCase):

@@ -9,14 +9,16 @@ from functools import partial
 class ScannerTemplate:
     __wavs_mod__ = True
 
+    self.info = {
+        "name": "",
+        "desc": "",
+        "author": "@ryan_ritchie"
+    }
+
     def __init__(self, main, options=None):
         self.main = main
 
-        self.info = {
-            "name": "",
-            "desc": "",
-            "author": "@ryan_ritchie"
-        }
+
 
         self.options = {
             # the number of threads the directory scanner should use

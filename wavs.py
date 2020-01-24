@@ -37,9 +37,7 @@ class WebScanner():
         self.success_codes = [200, 201, 202, 203, 204, 301, 302, 303, 304]
         self.file_extensions = ['.html', '.php']
 
-        # TODO: find a better way to return module results
-        self.directories_found = []
-        self.files_found = []
+        # dictionary to hold scan results, custom modules can add results
         self.scan_results = {
             'directories_found': [],
             'files_found': []
@@ -50,6 +48,7 @@ class WebScanner():
         self.modules.append(load_module("scanners", "InitialScanner")(self))
         self.modules.append(load_module("scanners", "DirectoryScanner")(self))
         self.modules.append(load_module("scanners", "FileScanner")(self))
+        self.modules.append(load_module("scanners", "HTMLParser")(self))
 
     def run_modules(self):
         for module in self.modules:

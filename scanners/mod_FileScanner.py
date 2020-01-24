@@ -61,16 +61,19 @@ class FileScanner:
             if (resp.status_code in self.main.success_codes):
                 # if the directory is not an empty string i.e. if it is not
                 # searching the root directory
+                found_path = ''
                 if directory:
-                    found_files.append('{}/{}{}'.format(directory, word, ext))
+                    found_path = f'{directory}/{word}{ext}'
                 else:
-                    found_files.append('{}{}'.format(word, ext))
+                    found_path = f'{word}{ext}'
+
+                if self.options['verbose']:
+                    success(found_path)
+
+                found_files.append(found_path)
 
         # only return a list if files were actually found
         if found_files:
-            if self.options['verbose']:
-                for ffile in found_files:
-                    success(ffile)
             return found_files
 
     def _run_module(self):
@@ -113,4 +116,3 @@ class FileScanner:
 
         end_time = datetime.now()
         info('File search completed. Elapsed: {}'.format(end_time - start_time))
-

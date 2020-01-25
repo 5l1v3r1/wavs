@@ -54,7 +54,7 @@ class DirectoryScanner:
         thread_pool = Pool(self.options['numberOfThreads'])
 
         # load in the wordlist from database
-        word_list = db_get_wordlist('directory', 'general')
+        word_list = db_get_wordlist('test', 'all')
 
         # add an empty string so that the root directory is scanned
         word_list.append('')

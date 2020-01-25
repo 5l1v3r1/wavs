@@ -21,6 +21,34 @@ class HTMLParser:
             "numberOfThreads": 8
         }
 
+    def _extract_links(self, html):
+        """ extract anchor links out of html data
+
+            :param html:        a beautiful soup html object
+            :return (list):     a list of links found in the html
+        """
+        links = []
+
+        # loop through all the anchor tags
+        for link in html.find_all('a'):
+
+            # get the link address
+            links.append(link.get('href'))
+
+        return links
+
+    def _extract_forms(self, html):
+        """ extract params from html forms
+
+            :param html:        a beautiful soup html object
+            :return (list):     a list of params found in the html
+        """
+
+        for form in html.find_all('form'):
+            for field in form:
+                if field.name == 'input':
+                    print(field)
+
     def _run_thread(self, webpage):
         # get the html
         url = f'http://{self.main.host}:{self.main.port}/{webpage}'
@@ -28,7 +56,8 @@ class HTMLParser:
 
         # look for params to inject into
         soup = BeautifulSoup(html, 'html.parser')
-        success(soup.prettify())
+        print(self._extract_links(soup))
+        self._extract_forms(soup)
 
     def _run_module(self):
         # get the list of found pages

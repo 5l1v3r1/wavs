@@ -29,5 +29,5 @@ class ScannerTemplate:
     def _run_thread(self):
         pass
 
-    def _run_module(self):
+    def run_module(self):
         pass

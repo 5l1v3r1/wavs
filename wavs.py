@@ -40,7 +40,8 @@ class WebScanner():
         # dictionary to hold scan results, custom modules can add results
         self.scan_results = {
             'directories_found': [],
-            'files_found': []
+            'files_found': [],
+            'params_found': []
         }
 
         # TODO: load modules in from config file
@@ -52,7 +53,7 @@ class WebScanner():
 
     def run_modules(self):
         for module in self.modules:
-            module._run_module()
+            module.run_module()
 
 
 class Test(unittest.TestCase):

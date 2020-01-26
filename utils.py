@@ -79,7 +79,7 @@ def _print_status(message, type):
         colour = Fore.RED
         status_code = '-'
     elif type == 'info':
-        colour = Fore.BLUE
+        colour = Fore.YELLOW
         status_code = '*'
 
     # TODO: sort this out ->

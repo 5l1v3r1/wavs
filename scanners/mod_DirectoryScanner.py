@@ -42,7 +42,7 @@ class DirectoryScanner:
             success(word)
             return word
 
-    def _run_module(self):
+    def run_module(self):
         start_time = datetime.now()
         info('Starting directory scan on {}:{} at {}'.format(self.main.host,
                                                    self.main.port,
@@ -50,7 +50,6 @@ class DirectoryScanner:
                                                     '%d/%b/%Y %H:%M:%S')))
 
         # create the threads
-        # TODO: allow the user to change number of threads
         thread_pool = Pool(self.options['numberOfThreads'])
 
         # load in the wordlist from database

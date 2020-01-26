@@ -32,7 +32,7 @@ class InitialScanner:
             "numberOfThreads": 1
         }
 
-    
+
     def _is_server_up(self):
         ''' checks if the server us up
 
@@ -74,7 +74,7 @@ class InitialScanner:
     def _run_thread(self):
         pass
 
-    def _run_module(self):
+    def run_module(self):
         checks = 0
 
         if self._is_server_up():

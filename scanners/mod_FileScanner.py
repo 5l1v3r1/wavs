@@ -76,7 +76,7 @@ class FileScanner:
         if found_files:
             return found_files
 
-    def _run_module(self):
+    def run_module(self):
         """ method that loads in a file wordlist and uses thread to search for
             the files
 

@@ -40,7 +40,7 @@ class InitialScanner:
             :return (int): 0 - server is up and responding
                            1 - server is not responding
         '''
-        resp = http_get_request(f'http://{self.main.host}:{self.main.port}')
+        resp = http_get_request(f'http://{self.main.host}:{self.main.port}', self.main.cookies)
 
         if resp == 1:
             return 1
@@ -61,7 +61,7 @@ class InitialScanner:
         should_not_find = ''.join(random.choice(string.ascii_lowercase) for i in range(20))
 
         # make a get request with random string as a directory
-        resp = requests.get('http://{}:{}/{}'.format(self.main.host, self.main.port, should_not_find))
+        resp = requests.get('http://{}:{}/{}'.format(self.main.host, self.main.port, should_not_find), self.main.cookies)
 
         # check for success code
         if resp.status_code == 200:

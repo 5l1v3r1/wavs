@@ -10,6 +10,7 @@ import importlib
 import inspect
 import requests
 import requests.exceptions
+import unittest
 
 from sqlite3 import Error
 
@@ -46,9 +47,9 @@ def load_module(package_name, class_name):
 #                                                                             #
 ###############################################################################
 
-def http_get_request(url):
+def http_get_request(url, cookies):
     try:
-        r = requests.get(url)
+        r = requests.get(url, cookies=cookies)
 
     except (requests.exceptions.ConnectionError, requests.exceptions.Timeout):
         warning(f'Server at {url} is not responding')
@@ -56,6 +57,18 @@ def http_get_request(url):
 
     return r
 
+def cookie_parse(cookie_string):
+    if not cookie_string:
+        return {}
+        
+    cookies = cookie_string.split(',')
+
+    cookie_dict = {}
+    for c in cookies:
+        k, v = c.split('=')
+        cookie_dict[k] = v
+
+    return cookie_dict
 
 ###############################################################################
 #                                                                             #
@@ -214,3 +227,13 @@ def __load_wordlist(wordlist_file):
         wordlist = [word for word in wordlist if word]
 
     db_wordlist_add_words('directory', wordlist)
+
+class Test(unittest.TestCase):
+    def test_cookie_parse(self):
+        c_string = 'testcookie=1,PHPSESSID=ff7p62chjhlfi69o71nqk5vqd4'
+        cookies = cookie_parse(c_string)
+        self.assertEqual(cookies['testcookie'], '1')
+        self.assertEqual(cookies['PHPSESSID'], 'ff7p62chjhlfi69o71nqk5vqd4')
+
+if __name__ == '__main__':
+    unittest.main()

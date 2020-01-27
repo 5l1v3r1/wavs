@@ -31,11 +31,6 @@ class FileScanner:
             "directories": self.main.scan_results['directories_found']
         }
 
-    def _parse_options(self, options):
-        # parse the options
-        for opt in options:
-            if opt in self.options.keys():
-                self.options[opt] = options[opt]
 
     def _run_thread(self, directory, word):
         """ makes a HTTP GET request to check if a file exists. to be used as
@@ -54,8 +49,12 @@ class FileScanner:
 
         # loop through file extensions to be searched for
         for ext in self.main.file_extensions:
+            # check we dont go to restricted path
+            if f'{word}{ext}' in self.main.restrict_paths:
+                continue
+
             # make the GET request for the file
-            resp = http_get_request(url + f'{word}{ext}')
+            resp = http_get_request(url + f'{word}{ext}', self.main.cookies)
 
             # check if the response code is a success code
             if (resp.status_code in self.main.success_codes):
@@ -89,7 +88,7 @@ class FileScanner:
                                                     '%d/%b/%Y %H:%M:%S')))
 
         # TODO: create a file wordlist
-        word_list = db_get_wordlist('test', 'all')
+        word_list = db_get_wordlist('directory', 'general')
 
         # create the threads
         # need to let user change the number of threads used

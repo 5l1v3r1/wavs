@@ -33,9 +33,13 @@ class DirectoryScanner:
             :param word:        the directory to scan for
             :return (string):   the directory if found
         """
+        # check for restricted paths
+        if word in self.main.restrict_paths:
+            return None
+
         # GET request to the directory
         url = f'http://{self.main.host}:{self.main.port}/{word}/'
-        resp = http_get_request(url)
+        resp = http_get_request(url, self.main.cookies)
 
         # check if the response code is a success code
         if (resp.status_code in self.main.success_codes):
@@ -53,7 +57,7 @@ class DirectoryScanner:
         thread_pool = Pool(self.options['numberOfThreads'])
 
         # load in the wordlist from database
-        word_list = db_get_wordlist('test', 'all')
+        word_list = db_get_wordlist('directory', 'general')
 
         # add an empty string so that the root directory is scanned
         word_list.append('')

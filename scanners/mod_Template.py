@@ -6,6 +6,7 @@ from functools import partial
 
 from utils import success, warning, info
 from utils import db_get_wordlist
+from utils import http_get_request
 
 class ScannerTemplate:
     __wavs_mod__ = True

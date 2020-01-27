@@ -46,12 +46,17 @@ class HTMLParser:
 
         # loop through all the anchor tags
         for link in html.find_all('a'):
+            href = link.get('href')
+
+            if not href:
+                continue
+
             # we only want links with parameters in
-            if not '?' in link.get('href'):
+            if not '?' in href:
                 continue
 
             # we assume if it is an absolute path it is external and ignore it
-            if any(x in link.get('href') for x in ['http://', 'https://']):
+            if any(x in href for x in ['http://', 'https://']):
                 continue
 
             # extract the parameters from the link
@@ -87,8 +92,8 @@ class HTMLParser:
 
         form_params = []
         for form in html.find_all('form'):
-            for field in form:
-                if field.name == 'input' and field.get('type') != 'submit':
+            for field in form.find_all('input'):
+                if field.get('type') != 'submit':
                     form_params.append(self._extract_form_params(form, field))
 
         return form_params
@@ -102,7 +107,7 @@ class HTMLParser:
         """
         # get the html
         url = f'http://{self.main.host}:{self.main.port}/{webpage}'
-        html = http_get_request(url).text
+        html = http_get_request(url, self.main.cookies).text
 
         # look for params to inject into
         soup = BeautifulSoup(html, 'html.parser')
@@ -131,8 +136,8 @@ class HTMLParser:
             return
 
         # pass the found pages to threads
-        pool = Pool(self.options['numberOfThreads'])
-        found_params = pool.map(self._run_thread, found_pages)
+        thread_pool = Pool(self.options['numberOfThreads'])
+        found_params = thread_pool.map(self._run_thread, found_pages)
 
         # close the threads
         thread_pool.close()

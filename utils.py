@@ -60,7 +60,7 @@ def http_get_request(url, cookies):
 def cookie_parse(cookie_string):
     if not cookie_string:
         return {}
-        
+
     cookies = cookie_string.split(',')
 
     cookie_dict = {}
@@ -75,6 +75,9 @@ def cookie_parse(cookie_string):
 #                           PRINT UTIL FUNCTIONS                              #
 #                                                                             #
 ###############################################################################
+
+def banner_colour(banner):
+    print(Fore.CYAN + banner)
 
 def _print_status(message, type):
     assert(type in ['success', 'warning', 'info'])

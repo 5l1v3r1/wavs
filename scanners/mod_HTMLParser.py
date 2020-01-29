@@ -32,9 +32,8 @@ class HTMLParser:
         for param in params.split('&'):
             stored_params.append(param.split('=')[0])
 
-        final_params = [{'method': 'GET', 'action': action, 'param': p} for p in stored_params]
+        return {'method': 'GET', 'action': action, 'params': stored_params}
 
-        return final_params
 
     def _extract_links(self, html):
         """ extract anchor links out of html data
@@ -60,7 +59,7 @@ class HTMLParser:
                 continue
 
             # extract the parameters from the link
-            links.extend(self._extract_link_params(link.get('href')))
+            links.append(self._extract_link_params(link.get('href')))
 
         return links
 
@@ -81,7 +80,8 @@ class HTMLParser:
         if any(x in action for x in ['http://', 'https://']):
             return None
 
-        return {'method': method, 'action': action, 'param': field.get('name')}
+        return field.get('name')
+
 
     def _extract_forms(self, html):
         """ extract params from html forms
@@ -91,12 +91,16 @@ class HTMLParser:
         """
 
         form_params = []
-        for form in html.find_all('form'):
-            for field in form.find_all('input'):
-                if field.get('type') != 'submit':
-                    form_params.append(self._extract_form_params(form, field))
+        forms = html.find_all('form')
 
-        return form_params
+        if not forms:
+            return None
+
+        for form in forms:
+            for field in form.find_all('input'):
+                form_params.append(self._extract_form_params(form, field))
+
+        return {'method': form.get('method'), 'action': form.get('action'), 'params': form_params}
 
     def _run_thread(self, webpage):
         """ runs in a thread. parses a webpage's html for form and links, then
@@ -114,7 +118,7 @@ class HTMLParser:
 
         params = []
         params.extend(self._extract_links(soup))
-        params.extend(self._extract_forms(soup))
+        params.append(self._extract_forms(soup))
 
         return params
 
@@ -125,8 +129,9 @@ class HTMLParser:
             the html.
         """
         start_time = datetime.now()
-        info('Starting param parsing at {}'.format(datetime.strftime(start_time,
-                                                    '%d/%b/%Y %H:%M:%S')))
+        # info('Starting param parsing at {}'.format(datetime.strftime(start_time,
+        #                                             '%d/%b/%Y %H:%M:%S')))
+        info('Parsing HTML...')
 
         # get the list of found pages
         found_pages = self.main.scan_results['files_found']
@@ -146,12 +151,13 @@ class HTMLParser:
         # clean up the results from the threads
         final = []
         found_params = [final.extend(p) for p in found_params if p]
+        final = list(filter(None, final))
 
         if self.options['verbosity']:
-            for param in final:
-                success(f'Found injectable param: {param["action"]}/{param["param"]}')
+            for params in final:
+                success(f'Found params: {params["action"]}/{" ".join(params["params"])}')
 
         self.main.scan_results['params_found'] = final
 
         end_time = datetime.now()
-        info('Param parsing completed. Elapsed: {}'.format(end_time - start_time))
+        #info('Param parsing completed. Elapsed: {}'.format(end_time - start_time))

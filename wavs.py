@@ -16,7 +16,7 @@ from multiprocessing import Pool
 from functools import partial
 
 # my imports
-from utils import success, warning, info
+from utils import success, warning, info, banner_colour
 from utils import db_get_wordlist
 from utils import load_module
 from utils import cookie_parse
@@ -26,7 +26,7 @@ arg_parser = argparse.ArgumentParser()
 arg_parser.add_argument('host', help='The url of the web application to be scanned')
 arg_parser.add_argument('--port', type=int, default=80, help='The port the web application is running on')
 arg_parser.add_argument('--cookies', help='Cookies to be included in requests, <cookie_name>=<cookie_value>,[...]')
-arg_parser.add_argument('--restricted_paths', help='Paths which should not be visited, /restrict/path/1,/restrict/path/2')
+arg_parser.add_argument('--restricted_paths', default='', help='Paths which should not be visited, /restrict/path/1,/restrict/path/2')
 args = arg_parser.parse_args()
 
 class WebScanner():
@@ -36,10 +36,13 @@ class WebScanner():
         self.port = port
         self.cookies = cookie_parse(cookies)
 
-        if ',' in restrict_paths:
-            self.restrict_paths = restrict_paths.split(',')
+        if restrict_paths:
+            if ',' in restrict_paths:
+                self.restrict_paths = restrict_paths.split(',')
+            else:
+                self.restrict_paths = [restrict_paths]
         else:
-            self.restrict_paths = [restrict_paths]
+            self.restrict_paths = None
 
         # TODO: add way to change success codes
         self.success_codes = [200, 201, 202, 203, 204, 301, 302, 303, 304]
@@ -59,6 +62,23 @@ class WebScanner():
         self.modules.append(load_module("scanners", "FileScanner")(self))
         self.modules.append(load_module("scanners", "Spider")(self))
         self.modules.append(load_module("scanners", "HTMLParser")(self))
+        self.modules.append(load_module("scanners", "SQLInjectionScanner")(self))
+
+        self._banner()
+
+    def _banner(self):
+        banner = """
+`7MMF'     A     `7MF' db `7MMF'   `7MF'.M'''bgd
+  `MA     ,MA     ,V  ;MM:  `MA     ,V ,MI    "Y
+   VM:   ,VVM:   ,V  ,V^MM.  VM:   ,V  `MMb.
+    MM.  M' MM.  M' ,M  `MM   MM.  M'    `YMMNq.
+    `MM A'  `MM A'  AbmmmqMA  `MM A'   .     `MM
+     :MM;    :MM;  A'     VML  :MM;    Mb     dM
+      VF      VF .AMA.   .AMMA. VF     P"Ybmmd"
+
+Web Application Vulnerability Scanner by Ryan Ritchie
+        """
+        banner_colour(banner)
 
     def run_modules(self):
         for module in self.modules:

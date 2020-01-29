@@ -34,7 +34,7 @@ class DirectoryScanner:
             :return (string):   the directory if found
         """
         # check for restricted paths
-        if word in self.main.restrict_paths:
+        if self.main.restrict_paths and word in self.main.restrict_paths:
             return None
 
         # GET request to the directory
@@ -48,10 +48,11 @@ class DirectoryScanner:
 
     def run_module(self):
         start_time = datetime.now()
-        info('Starting directory scan on {}:{} at {}'.format(self.main.host,
-                                                   self.main.port,
-                                                   datetime.strftime(start_time,
-                                                    '%d/%b/%Y %H:%M:%S')))
+        # info('Starting directory scan on {}:{} at {}'.format(self.main.host,
+        #                                            self.main.port,
+        #                                            datetime.strftime(start_time,
+        #                                             '%d/%b/%Y %H:%M:%S')))
+        info('Searching for directories...')
 
         # create the threads
         thread_pool = Pool(self.options['numberOfThreads'])
@@ -75,4 +76,4 @@ class DirectoryScanner:
         self.main.scan_results['directories_found'].extend(directories_found)
 
         end_time = datetime.now()
-        info('Directory search completed. Elapsed: {}'.format(end_time - start_time))
+        #info('Directory search completed. Elapsed: {}'.format(end_time - start_time))

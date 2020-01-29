@@ -48,6 +48,7 @@ class Spider:
         return return_links
 
     def run_module(self):
+        info('Crawling links...')
         # get found pages
         found_pages = self.main.scan_results['files_found']
 

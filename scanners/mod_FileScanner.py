@@ -50,8 +50,9 @@ class FileScanner:
         # loop through file extensions to be searched for
         for ext in self.main.file_extensions:
             # check we dont go to restricted path
-            if f'{word}{ext}' in self.main.restrict_paths:
-                continue
+            if self.main.restrict_paths:
+                if f'{word}{ext}' in self.main.restrict_paths:
+                    continue
 
             # make the GET request for the file
             resp = http_get_request(url + f'{word}{ext}', self.main.cookies)
@@ -82,10 +83,11 @@ class FileScanner:
             :return:
         """
         start_time = datetime.now()
-        info('Starting file scan on {}:{} at {}'.format(self.main.host,
-                                                   self.main.port,
-                                                   datetime.strftime(start_time,
-                                                    '%d/%b/%Y %H:%M:%S')))
+        # info('Starting file scan on {}:{} at {}'.format(self.main.host,
+        #                                            self.main.port,
+        #                                            datetime.strftime(start_time,
+        #                                             '%d/%b/%Y %H:%M:%S')))
+        info('Searching for files...')
 
         # TODO: create a file wordlist
         word_list = db_get_wordlist('directory', 'general')
@@ -114,4 +116,4 @@ class FileScanner:
         self.main.scan_results['files_found'].extend(files_found)
 
         end_time = datetime.now()
-        info('File search completed. Elapsed: {}'.format(end_time - start_time))
+        #info('File search completed. Elapsed: {}'.format(end_time - start_time))

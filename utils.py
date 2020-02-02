@@ -11,6 +11,7 @@ import inspect
 import requests
 import requests.exceptions
 import unittest
+import pickle
 
 from sqlite3 import Error
 
@@ -119,6 +120,7 @@ def info(message):
 ###############################################################################
 
 DB_FILE = 'database/main.db'
+DB_SCAN_RESULTS = 'database/scans.db'
 
 def db_get_connection(database_file):
     """ create the database connection to the sqlite database
@@ -230,6 +232,18 @@ def __load_wordlist(wordlist_file):
         wordlist = [word for word in wordlist if word]
 
     db_wordlist_add_words('directory', wordlist)
+
+
+def save_new_scan(scan_object):
+    # datetime, host, port
+
+def save_scan_results(scan_id, scan_name, results):
+    conn = db_get_connection(DB_SCAN_RESULTS)
+
+    sql_save_results = f'INSERT INTO {scan_name} (scan_id, {scan_name}) VALUES ({scan_id}, {pickle.dumps(results)})'
+    db_execute_statement(conn, sql_save_results)
+
+    conn.close()
 
 class Test(unittest.TestCase):
     def test_cookie_parse(self):

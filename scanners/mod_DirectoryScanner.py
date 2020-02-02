@@ -5,7 +5,7 @@ from multiprocessing import Pool
 from functools import partial
 
 from utils import success, warning, info
-from utils import db_get_wordlist
+from utils import db_get_wordlist, save_scan_results
 from utils import http_get_request
 
 class DirectoryScanner:

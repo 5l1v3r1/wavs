@@ -13,6 +13,7 @@ class DirectoryScanner:
 
     info = {
         "name": "Directory Scanner",
+        "db_table_name": "directories_found",
         "desc": "Scans a web application for directories",
         "author": "@ryan_ritchie"
     }
@@ -74,6 +75,7 @@ class DirectoryScanner:
         thread_pool.join()
 
         self.main.scan_results['directories_found'].extend(directories_found)
+        save_scan_results(self.main.id, self.info['db_table_name'], directories_found)
 
         end_time = datetime.now()
         #info('Directory search completed. Elapsed: {}'.format(end_time - start_time))

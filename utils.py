@@ -14,6 +14,8 @@ import unittest
 import pickle
 
 from sqlite3 import Error
+from datetime import datetime
+from os import path
 
 # aesthetics imports
 try:
@@ -27,7 +29,7 @@ colorama.init(autoreset=True)
 
 def load_module(package_name, class_name):
     try:
-        module = importlib.import_module('{}.mod_{}'.format(package_name, class_name))
+        module = importlib.import_module('{}.{}'.format(package_name, class_name))
 
         for _class in dir(module):
             obj = getattr(module, _class)
@@ -235,15 +237,69 @@ def __load_wordlist(wordlist_file):
 
 
 def save_new_scan(scan_object):
-    # datetime, host, port
+    conn = db_get_connection(DB_SCAN_RESULTS)
+
+    scan_start = str(datetime.now())
+    sql_new_scan = (f"INSERT INTO scans(timestamp, host, port)"
+                    f" VALUES('{scan_start}',"
+                           f"'{scan_object.host}',"
+                           f"'{scan_object.port}')")
+
+    db_execute_statement(conn, sql_new_scan)
+
+    sql_get_id = f"SELECT id FROM scans ORDER BY id DESC LIMIT 0, 1"
+    result = _db_get_data(conn, sql_get_id)
+
+    # result is a list containing a tuple
+    return result[0][0]
+
 
 def save_scan_results(scan_id, scan_name, results):
     conn = db_get_connection(DB_SCAN_RESULTS)
 
-    sql_save_results = f'INSERT INTO {scan_name} (scan_id, {scan_name}) VALUES ({scan_id}, {pickle.dumps(results)})'
-    db_execute_statement(conn, sql_save_results)
+    for row in results:
+        sql_save_results = f'INSERT OR IGNORE INTO {scan_name} (scan_id, {scan_name}) VALUES ("{scan_id}", "{row}")'
+        db_execute_statement(conn, sql_save_results)
 
     conn.close()
+
+
+def load_scan_results(scan_id, scan_name):
+    ''' load scan results from previous modules, from the database.
+
+        @param:     scan_id (int)       - the scan id to be loaded
+        @param:     scan_name (string)  - the name of the scan module
+
+        @return:    (list) the scan results
+    '''
+    conn = db_get_connection(DB_SCAN_RESULTS)
+
+    # the SQL query to get the scan results
+    sql_load_scan = f'SELECT {scan_name} FROM {scan_name} WHERE scan_id={scan_id}'
+
+    # execute the query and get results
+    result = _db_get_data(conn, sql_load_scan)
+
+    # convert the returned tuple to a list
+    results = [r[0] for r in result]
+    conn.close()
+
+    return results
+
+
+def load_config():
+    config_path = 'conf/config'
+
+    if not path.exists(config_path):
+        warning(f'{config_path} could not be found')
+        exit()
+
+    with open(config_path, 'r') as f:
+        config_data = f.read().split('\n')
+        print(config_data)
+
+        # TODO: use config parser or JSON
+
 
 class Test(unittest.TestCase):
     def test_cookie_parse(self):
@@ -251,6 +307,26 @@ class Test(unittest.TestCase):
         cookies = cookie_parse(c_string)
         self.assertEqual(cookies['testcookie'], '1')
         self.assertEqual(cookies['PHPSESSID'], 'ff7p62chjhlfi69o71nqk5vqd4')
+
+    def test_save_new_scan(self):
+        class FakeScanObject:
+            def __init__(self):
+                self.host = '127.0.0.1'
+                self.port = 80
+
+        fake_scan_object = FakeScanObject()
+        #id = save_new_scan(fake_scan_object)
+        #self.assertIsInstance(id, int)
+
+    def test_save_scan_results(self):
+        #save_scan_results(1, 'directories_found', ['css', 'images', 'js'])
+        pass
+
+    def test_load_scan_results(self):
+        load_scan_results(1, 'directories_found')
+
+    def test_load_config(self):
+        load_config()
 
 if __name__ == '__main__':
     unittest.main()

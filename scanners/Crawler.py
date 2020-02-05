@@ -5,14 +5,15 @@ from multiprocessing import Pool
 from bs4 import BeautifulSoup
 
 from utils import success, warning, info
-from utils import db_get_wordlist
+from utils import db_get_wordlist, load_scan_results, save_scan_results
 from utils import http_get_request
 
-class Spider:
+class Crawler:
     __wavs_mod__ = True
 
     info = {
-        "name": "Spider",
+        "name": "Site Crawler",
+        "db_scan_name": "files_found",
         "desc": "Crawls through links to find new pages",
         "author": "@ryan_ritchie"
     }
@@ -50,7 +51,8 @@ class Spider:
     def run_module(self):
         info('Crawling links...')
         # get found pages
-        found_pages = self.main.scan_results['files_found']
+        #found_pages = self.main.scan_results['files_found']
+        found_pages = load_scan_results(self.main.id, 'files_found')
 
         thread_pool = Pool(self.options['numberOfThreads'])
 
@@ -66,4 +68,6 @@ class Spider:
 
         # remove duplicates
         final = list(set(final))
+
         self.main.scan_results['files_found'].extend(final)
+        save_scan_results(self.main.id, self.info['db_scan_name'], final)

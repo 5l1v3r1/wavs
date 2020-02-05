@@ -5,7 +5,7 @@ from multiprocessing import Pool
 from functools import partial
 
 from utils import success, warning, info
-from utils import db_get_wordlist
+from utils import db_get_wordlist, load_scan_results, save_scan_results
 from utils import http_get_request
 
 class FileScanner:
@@ -13,6 +13,7 @@ class FileScanner:
 
     info = {
         "name": "File Scanner",
+        "db_scan_name": "files_found",
         "desc": "Scans for files once ",
         "author": "@ryan_ritchie"
     }
@@ -28,9 +29,14 @@ class FileScanner:
             "verbose": 1,
 
             # what directories should it scan for files in
-            "directories": self.main.scan_results['directories_found']
+            "directories": []
         }
 
+
+    def _load_options(self):
+        dirs_found = load_scan_results(self.main.id, "directories_found")
+
+        self.options['directories'] = dirs_found
 
     def _run_thread(self, directory, word):
         """ makes a HTTP GET request to check if a file exists. to be used as
@@ -89,6 +95,9 @@ class FileScanner:
         #                                             '%d/%b/%Y %H:%M:%S')))
         info('Searching for files...')
 
+        # load in module specific options
+        self._load_options()
+
         # TODO: create a file wordlist
         word_list = db_get_wordlist('directory', 'general')
 
@@ -114,6 +123,7 @@ class FileScanner:
         thread_pool.join()
 
         self.main.scan_results['files_found'].extend(files_found)
+        save_scan_results(self.main.id, self.info['db_scan_name'], files_found)
 
         end_time = datetime.now()
         #info('File search completed. Elapsed: {}'.format(end_time - start_time))

@@ -6,14 +6,16 @@ from functools import partial
 
 from utils import success, warning, info
 from utils import db_get_wordlist
+from utils import load_scan_results, save_scan_results
 from utils import http_get_request
 
 class SQLInjectionScanner:
     __wavs_mod__ = True
 
     info = {
-        "name": "",
-        "desc": "",
+        "name": "SQL Injection Scanner",
+        "desc": "Scan the web application for SQL injections",
+        "db_scan_name": "sql_injections",
         "author": "@ryan_ritchie"
     }
 
@@ -67,6 +69,8 @@ class SQLInjectionScanner:
                             success(f'SQLi vulnerable parameter: {page}/{p}')
                             injectable_params.append(p)
 
+            return injectable_params
+
         elif method == 'POST':
             # TODO: need to make POST requests
             pass
@@ -75,11 +79,14 @@ class SQLInjectionScanner:
         info('Searching for SQL injections...')
 
         # get the injectable params
-        params = self.main.scan_results['params_found']
+        #params = self.main.scan_results['params_found']
+        params = load_scan_results(self.main.id, 'params_found')
 
         # pass them off to threads
         thread_pool = Pool(self.options['numberOfThreads'])
         results = thread_pool.map(self._run_thread, params)
+
+        save_scan_results(self.main.id, self.info['db_scan_name'], results)
 
         thread_pool.close()
         thread_pool.join()

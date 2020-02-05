@@ -15,7 +15,7 @@ class InitialScanner:
     __wavs_mod__ = True
 
     info = {
-        "name": "Initial scanner",
+        "name": "Initial Scanner",
         "desc": "Does some initial scans on the web application to determine \
                  if its available, if it returns normal status codes etc",
         "author": "@ryan_ritchie"

@@ -1,0 +1,7 @@
+[modules]
+scanners/InitialScanner
+scanners/DirectoryScanner
+scanners/FileScanner
+scanners/Spider
+scanners/HTMLParser
+scanners/SQLInjectionScanner

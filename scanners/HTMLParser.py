@@ -2,6 +2,7 @@ from multiprocessing import Pool
 from bs4 import BeautifulSoup
 
 from datetime import datetime
+from utils import load_scan_results, save_scan_results
 from utils import success, warning, info
 from utils import http_get_request
 
@@ -134,7 +135,8 @@ class HTMLParser:
         info('Parsing HTML...')
 
         # get the list of found pages
-        found_pages = self.main.scan_results['files_found']
+        #found_pages = self.main.scan_results['files_found']
+        found_pages = load_scan_results(self.main.id, 'files_found')
 
         # if there are no found pages, theres no need to run this module
         if not found_pages:
@@ -158,6 +160,7 @@ class HTMLParser:
                 success(f'Found params: {params["action"]}/{" ".join(params["params"])}')
 
         self.main.scan_results['params_found'] = final
+        save_scan_results(self.main.id, 'params_found', final)
 
         end_time = datetime.now()
         #info('Param parsing completed. Elapsed: {}'.format(end_time - start_time))

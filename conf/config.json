@@ -1,0 +1,30 @@
+{
+  "options" : {
+    "success_codes" : [200, 201, 202, 203, 204, 301, 302, 303, 304],
+    "file_extensions" : [".html", ".php"],
+    "display_banner" : true
+  },
+
+  "modules" : [
+    { "name" : "Initial Scanner", "path" : "scanners/InitialScanner" },
+    { "name" : "Directory Scanner", "path" : "scanners/DirectoryScanner" },
+    { "name" : "File Scanner", "path" : "scanners/FileScanner" },
+    { "name" : "Site Crawler", "path" : "scanners/Crawler" },
+    { "name" : "HTML Parser", "path" : "scanners/HTMLParser" },
+    { "name" : "SQL Injection Scanner", "path": "scanners/SQLInjectionScanner" }
+  ],
+
+  "scan types" :
+    { "default" : [
+        "Initial Scanner",
+        "Directory Scanner",
+        "File Scanner",
+        "Site Crawler",
+        "HTML Parser",
+        "SQL Injection Scanner"
+      ],
+      "initial" : [
+        "Initial Scanner"
+      ]
+    }
+}

@@ -51,8 +51,30 @@ def load_module(package_name, class_name):
 ###############################################################################
 
 def http_get_request(url, cookies):
+    """
+
+        @param url (str) -              the URL to make the request to
+        @param cookies (dict) -         the cookies to send with the request
+    """
     try:
         r = requests.get(url, cookies=cookies)
+
+    except (requests.exceptions.ConnectionError, requests.exceptions.Timeout):
+        warning(f'Server at {url} is not responding')
+        return 1
+
+    return r
+
+def http_post_request(url, post_params, cookies):
+    """
+
+        @param url (str) -              the URL to make the request to
+        @param post_params (dict) -     the post parameters to include in the request
+        @param cookies (dict) -         the cookies to send with the request
+    """
+    try:
+        post_data = {}
+        r = requests.post(url, data=post_params, cookies=cookies)
 
     except (requests.exceptions.ConnectionError, requests.exceptions.Timeout):
         warning(f'Server at {url} is not responding')
@@ -140,6 +162,11 @@ def db_get_connection(database_file):
     return connection
 
 
+def db_create_table(sql_statement):
+    connection = db_get_connection(DB_SCAN_RESULTS)
+    db_execute_statement(connection, sql_statement)
+
+
 def db_execute_statement(connection, sql_statement):
     """ execute a sql statement on the database represented by the connection
         object
@@ -154,6 +181,7 @@ def db_execute_statement(connection, sql_statement):
         cursor.execute(sql_statement)
         connection.commit()
     except Error as e:
+        print('sql error')
         print(e)
 
 
@@ -167,28 +195,19 @@ def _db_get_data(connection, sql_select_statement):
         print(e)
 
 
-def db_create_tables():
-    """ create the necessary database tables needed for the web scanner to work
+def db_table_exists(table_name):
+    connection = db_get_connection(DB_SCAN_RESULTS)
 
-        :return:
-    """
+    try:
+        cursor = connection.cursor()
+        sql_check_tbl_exists = f'SELECT name FROM sqlite_master WHERE type="table" and name="{table_name}"'
+        cursor.execute(sql_check_tbl_exists)
+        if len(cursor.fetchall()) > 0:
+            return True
 
-    # create a connection to the database
-    c = db_get_connection(DB_FILE)
-
-    # sql statement to create wordlist table
-    sql_create_table_wordlist = """ CREATE TABLE IF NOT EXISTS directory (
-                                        id integer PRIMARY KEY AUTOINCREMENT,
-                                        word text NOT NULL,
-                                        type text NOT NULL
-                                    ); """
-
-    # execute table creation statements
-    db_execute_statement(c, sql_create_table_wordlist)
-
-    # close the database connection
-    c.close()
-
+        return False
+    except Error as e:
+        print(e)
 
 def db_get_wordlist(wordlist_name, group_name):
     """ load a wordlist from the database
@@ -254,51 +273,49 @@ def save_new_scan(scan_object):
     return result[0][0]
 
 
-def save_scan_results(scan_id, scan_name, results):
+def save_scan_results(scan_id, table_name, table_columns, results):
     conn = db_get_connection(DB_SCAN_RESULTS)
 
     for row in results:
-        sql_save_results = f'INSERT OR IGNORE INTO {scan_name} (scan_id, {scan_name}) VALUES ("{scan_id}", "{row}")'
+        # give each string in row quotation marks
+        if isinstance(row, (list, tuple)):
+            val_list = [f'"{r}"' for r in row]
+
+            # construct a value string, comma delimited
+            val_string = ','.join(val_list)
+        else:
+            val_string = f'"{row}"'
+
+        # construct the sql statement
+        sql_save_results = f'INSERT OR IGNORE INTO {table_name} (scan_id,{table_columns}) VALUES ({scan_id},{val_string})'
         db_execute_statement(conn, sql_save_results)
 
     conn.close()
 
 
-def load_scan_results(scan_id, scan_name):
+def load_scan_results(scan_id, column_names, table_name):
     ''' load scan results from previous modules, from the database.
 
-        @param:     scan_id (int)       - the scan id to be loaded
-        @param:     scan_name (string)  - the name of the scan module
+        @param:     scan_id (int)           - the scan id to be loaded
+        @param:     column_names (string)   - the column names to load. multiple
+                                              columns delimited with commas
+        @param:     scan_name (string)      - the name of the scan module
 
         @return:    (list) the scan results
     '''
     conn = db_get_connection(DB_SCAN_RESULTS)
 
     # the SQL query to get the scan results
-    sql_load_scan = f'SELECT {scan_name} FROM {scan_name} WHERE scan_id={scan_id}'
+    sql_load_scan = f'SELECT {column_names} FROM {table_name} WHERE scan_id={scan_id}'
 
     # execute the query and get results
     result = _db_get_data(conn, sql_load_scan)
 
     # convert the returned tuple to a list
-    results = [r[0] for r in result]
+    #results = [r[0] for r in result]
     conn.close()
 
-    return results
-
-
-def load_config():
-    config_path = 'conf/config'
-
-    if not path.exists(config_path):
-        warning(f'{config_path} could not be found')
-        exit()
-
-    with open(config_path, 'r') as f:
-        config_data = f.read().split('\n')
-        print(config_data)
-
-        # TODO: use config parser or JSON
+    return result
 
 
 class Test(unittest.TestCase):
@@ -319,14 +336,16 @@ class Test(unittest.TestCase):
         #self.assertIsInstance(id, int)
 
     def test_save_scan_results(self):
-        #save_scan_results(1, 'directories_found', ['css', 'images', 'js'])
+        save_scan_results(1, 'test', 'method, action, params', [('GET', 'index.php', 'username, password, submit'), ('POST', 'contact.php', 'name', 'email')])
         pass
 
     def test_load_scan_results(self):
-        load_scan_results(1, 'directories_found')
+        print(load_scan_results(1, 'directories_found', 'directories_found'))
 
-    def test_load_config(self):
-        load_config()
+
+    def test_db_table_exists(self):
+        self.assertTrue(db_table_exists("directories_found"))
+
 
 if __name__ == '__main__':
     unittest.main()

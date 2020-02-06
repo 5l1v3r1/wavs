@@ -2,7 +2,7 @@ from multiprocessing import Pool
 from bs4 import BeautifulSoup
 
 from datetime import datetime
-from utils import load_scan_results, save_scan_results
+from utils import load_scan_results, save_scan_results, db_table_exists, db_create_table
 from utils import success, warning, info
 from utils import http_get_request
 
@@ -11,6 +11,7 @@ class HTMLParser:
 
     info = {
         "name": "HTML Parser",
+        "db_table_name": "parameters_discovered",
         "desc": "Takes a webpage and parses the HTML to find params to inject",
         "author": "@ryan_ritchie"
     }
@@ -18,11 +19,39 @@ class HTMLParser:
     def __init__(self, main, options=None):
         self.main = main
 
-        self.options = {
-            # the number of threads the directory scanner should use
-            "numberOfThreads": 8,
-            "verbosity": 1
-        }
+        self._create_db_table()
+
+    def _create_db_table(self):
+        """ used to create database table needed to store results for this
+            module. should be overwritten to meet this modules storage needs
+        """
+        if not db_table_exists(self.info['db_table_name']):
+            sql_create_statement = (f'CREATE TABLE IF NOT EXISTS {self.info["db_table_name"]}('
+                                    f'id INTEGER PRIMARY KEY AUTOINCREMENT,'
+                                    f'scan_id INTEGER NOT NULL,'
+                                    f'method TEXT NOT NULL,'
+                                    f'action TEXT NOT NULL,'
+                                    f'parameter TEXT NOT NULL,'
+                                    f'UNIQUE(scan_id, method, action, parameter));')
+            db_create_table(sql_create_statement)
+
+
+    def _load_scan_results(self):
+        """ loads in results from previous scans, should be overwritten to load
+            in specific results needed for this module
+        """
+        # load directories from database, results are a list of tuples
+        files_discovered = load_scan_results(self.main.id, 'file', 'files_discovered')
+
+        # convert the list of tuples into a 1D list
+        return [f[0] for f in files_discovered]
+
+    def _save_scan_results(self, results):
+        full_list = []
+        for r in results:
+            full_list.append((r['method'], r['action'], ', '.join(r['params'])))
+
+        save_scan_results(self.main.id, self.info['db_table_name'], "method, action, parameter", full_list)
 
     def _extract_link_params(self, link):
         assert('?' in link)
@@ -135,15 +164,14 @@ class HTMLParser:
         info('Parsing HTML...')
 
         # get the list of found pages
-        #found_pages = self.main.scan_results['files_found']
-        found_pages = load_scan_results(self.main.id, 'files_found')
+        found_pages = self._load_scan_results()
 
         # if there are no found pages, theres no need to run this module
         if not found_pages:
             return
 
         # pass the found pages to threads
-        thread_pool = Pool(self.options['numberOfThreads'])
+        thread_pool = Pool(self.main.options['threads'])
         found_params = thread_pool.map(self._run_thread, found_pages)
 
         # close the threads
@@ -155,12 +183,12 @@ class HTMLParser:
         found_params = [final.extend(p) for p in found_params if p]
         final = list(filter(None, final))
 
-        if self.options['verbosity']:
+        if self.main.options['verbose']:
             for params in final:
                 success(f'Found params: {params["action"]}/{" ".join(params["params"])}')
 
         self.main.scan_results['params_found'] = final
-        save_scan_results(self.main.id, 'params_found', final)
+        self._save_scan_results(final)
 
         end_time = datetime.now()
         #info('Param parsing completed. Elapsed: {}'.format(end_time - start_time))

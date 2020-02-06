@@ -8,40 +8,9 @@ from utils import db_get_wordlist
 from utils import http_get_request
 from utils import success, warning, info
 
-class ScannerTemplate:
-    """ This is a template used to create custom modules that run scans on the
-        web application. The module can optionally load in the results of
-        previous scans, and save results to the database.
-
-        The module should be saved in the scanners/ directory, and the filename
-        should be the same as the class name, e.g. The ScannerTemplate class
-        would be saved in scanners/ScannerTemplate.py.
-
-        Module loading:
-            To load the module into the application an entry needs to be made in
-            the conf/config.json file under 'modules' with the name and the path
-            to the file. e.g.
-            { "name" : "Scanner Template", "path" : "scanners/ScannerTemplate" }
-
-            Then add the module name in 'scan types', either in an existing scan
-            category, or a new one.
-
-        @required properties:
-            info['name'] - the name of the module, needs to match name in the
-                           conf/config.json file to correctly load the module
-
-        @optional properties:
-            info['db_table_name'] - the name of the table created in _create_db_table()
-
-        @required methods:
-            run_module - the entry point of the module, should start the scan
-
-        @optional methods:
-            _create_db_table - use to create a table in the database to store results
-                               should be called from __init__()
-            _save_scan_results - use to save results to database
-            _load_scan_results - use to load other module results
-            _run_thread - use to implement threading, use with multiprocessing.Pool
+class CrossSiteScripting:
+    """ This module is used to scan for cross site scripting (XSS) vulnerabilities
+        in a web application. It does this 
     """
 
     info = {

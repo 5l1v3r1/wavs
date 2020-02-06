@@ -59,6 +59,8 @@ class WebScanner():
         self.success_codes = [200, 201, 202, 203, 204, 301, 302, 303, 304]
         self.file_extensions = ['.html', '.php']
 
+        self.options = {}
+
         # dictionary to hold scan results, custom modules can add results
         self.scan_results = {
             'directories_found': [],
@@ -88,7 +90,7 @@ class WebScanner():
 
 Web Application Vulnerability Scanner by Ryan Ritchie
         """
-        if self._display_banner:
+        if self.options['display_banner']:
             banner_colour(banner)
 
     def load_config(self):
@@ -133,7 +135,9 @@ Web Application Vulnerability Scanner by Ryan Ritchie
 
         self.success_codes = config_dict['options']['success_codes']
         self.file_extensions = config_dict['options']['file_extensions']
-        self._display_banner = config_dict['options']['display_banner']
+        self.options['display_banner'] = config_dict['options']['display_banner']
+        self.options['threads'] = config_dict['options']['threads']
+        self.options['verbose'] = config_dict['options']['verbose']
 
 
     def _load_modules(self, modules_list):

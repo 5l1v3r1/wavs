@@ -5,7 +5,7 @@ from multiprocessing import Pool
 from bs4 import BeautifulSoup
 
 from utils import success, warning, info
-from utils import db_get_wordlist, load_scan_results, save_scan_results
+from utils import db_get_wordlist, load_scan_results, save_scan_results, db_table_exists, db_create_table
 from utils import http_get_request
 
 class Crawler:
@@ -13,7 +13,7 @@ class Crawler:
 
     info = {
         "name": "Site Crawler",
-        "db_scan_name": "files_found",
+        "db_table_name": "files_discovered",
         "desc": "Crawls through links to find new pages",
         "author": "@ryan_ritchie"
     }
@@ -21,10 +21,33 @@ class Crawler:
     def __init__(self, main, options=None):
         self.main = main
 
-        self.options = {
-            # the number of threads the directory scanner should use
-            "numberOfThreads": 8
-        }
+        self._create_db_table()
+
+    def _create_db_table(self):
+        """ used to create database table needed to store results for this
+            module. should be overwritten to meet this modules storage needs
+        """
+        if not db_table_exists(self.info['db_table_name']):
+            sql_create_statement = (f'CREATE TABLE IF NOT EXISTS {self.info["db_table_name"]}('
+                                    f'id INTEGER PRIMARY KEY AUTOINCREMENT,'
+                                    f'scan_id INTEGER NOT NULL,'
+                                    f'file TEXT,'
+                                    f'UNIQUE(scan_id, file));')
+            db_create_table(sql_create_statement)
+
+
+    def _load_scan_results(self):
+        """ loads in results from previous scans, should be overwritten to load
+            in specific results needed for this module
+        """
+        # load directories from database, results are a list of tuples
+        files_discovered = load_scan_results(self.main.id, 'file', 'files_discovered')
+
+        # convert the list of tuples into a 1D list
+        return [f[0] for f in files_discovered]
+
+    def _save_scan_results(self, results):
+        save_scan_results(self.main.id, self.info['db_table_name'], "file", results)
 
     def _run_thread(self, page):
         # get the html
@@ -43,8 +66,12 @@ class Crawler:
                 continue
 
             if not any(x in href for x in ['http://', 'https://']):
-                if not href in self.found_links:
-                    return_links.append(f'{page}/{href}')
+                if '?' in href:
+                    # get page from href
+                    linked_page = href.split('?')[0]
+
+                    if linked_page not in self.found_pages:
+                        return_links.append(f'{linked_page}')
 
         return return_links
 
@@ -52,12 +79,13 @@ class Crawler:
         info('Crawling links...')
         # get found pages
         #found_pages = self.main.scan_results['files_found']
-        found_pages = load_scan_results(self.main.id, 'files_found')
+        self.found_pages = self._load_scan_results()
 
-        thread_pool = Pool(self.options['numberOfThreads'])
+        # create the threads
+        thread_pool = Pool(self.main.options['threads'])
 
-        self.found_links = found_pages
-        found_links = thread_pool.map(self._run_thread, found_pages)
+        # run the threads with found pages
+        found_links = thread_pool.map(self._run_thread, self.found_pages)
 
         thread_pool.close()
         thread_pool.join()
@@ -69,5 +97,4 @@ class Crawler:
         # remove duplicates
         final = list(set(final))
 
-        self.main.scan_results['files_found'].extend(final)
-        save_scan_results(self.main.id, self.info['db_scan_name'], final)
+        self._save_scan_results(final)

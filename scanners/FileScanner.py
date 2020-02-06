@@ -1,19 +1,20 @@
 import requests
 
 from datetime import datetime
-from multiprocessing import Pool
 from functools import partial
+from multiprocessing import Pool
 
-from utils import success, warning, info
-from utils import db_get_wordlist, load_scan_results, save_scan_results
 from utils import http_get_request
+from utils import success, warning, info
+from utils import db_get_wordlist, load_scan_results, save_scan_results, db_table_exists, db_create_table
+
 
 class FileScanner:
     __wavs_mod__ = True
 
     info = {
         "name": "File Scanner",
-        "db_scan_name": "files_found",
+        "db_table_name": "files_discovered",
         "desc": "Scans for files once ",
         "author": "@ryan_ritchie"
     }
@@ -21,22 +22,35 @@ class FileScanner:
     def __init__(self, main, options=None):
         self.main = main
 
-        self.options = {
-            # the number of threads the directory scanner should use
-            "numberOfThreads": 8,
+        self._create_db_table()
 
-            # how much information should it output
-            "verbose": 1,
+    def _create_db_table(self):
+        """ used to create database table needed to store results for this
+            module. should be overwritten to meet this modules storage needs
+        """
+        if not db_table_exists(self.info['db_table_name']):
+            sql_create_statement = (f'CREATE TABLE  IF NOT EXISTS {self.info["db_table_name"]}('
+                                    f'id INTEGER PRIMARY KEY AUTOINCREMENT,'
+                                    f'scan_id INTEGER NOT NULL,'
+                                    f'file TEXT,'
+                                    f'UNIQUE(scan_id, file));')
+            db_create_table(sql_create_statement)
 
-            # what directories should it scan for files in
-            "directories": []
-        }
 
+    def _load_scan_results(self):
+        """ loads in results from previous scans, should be overwritten to load
+            in specific results needed for this module
+        """
+        # load directories from database, results are a list of tuples
+        dirs_discovered = load_scan_results(self.main.id, 'directory', 'directories_discovered')
 
-    def _load_options(self):
-        dirs_found = load_scan_results(self.main.id, "directories_found")
+        # convert the list of tuples into a 1D list
+        return [d[0] for d in dirs_discovered]
 
-        self.options['directories'] = dirs_found
+    def _save_scan_results(self, results):
+        """ dont have to worry about inserting id, scan_id
+        """
+        save_scan_results(self.main.id, self.info['db_table_name'], "file", results)
 
     def _run_thread(self, directory, word):
         """ makes a HTTP GET request to check if a file exists. to be used as
@@ -73,7 +87,7 @@ class FileScanner:
                 else:
                     found_path = f'{word}{ext}'
 
-                if self.options['verbose']:
+                if self.main.options['verbose']:
                     success(found_path)
 
                 found_files.append(found_path)
@@ -95,20 +109,18 @@ class FileScanner:
         #                                             '%d/%b/%Y %H:%M:%S')))
         info('Searching for files...')
 
-        # load in module specific options
-        self._load_options()
-
         # TODO: create a file wordlist
         word_list = db_get_wordlist('directory', 'general')
 
         # create the threads
         # need to let user change the number of threads used
-        thread_pool = Pool(self.options['numberOfThreads'])
+        thread_pool = Pool(self.main.options['threads'])
 
         files_found = []
 
         # loop through the list of directories found by _dir_scanner
-        for directory in self.options['directories']:
+        dirs_discovered = self._load_scan_results()
+        for directory in dirs_discovered:
             # use partial to allow more parameters passed to map
             func = partial(self._run_thread, directory)
 
@@ -122,8 +134,7 @@ class FileScanner:
         thread_pool.close()
         thread_pool.join()
 
-        self.main.scan_results['files_found'].extend(files_found)
-        save_scan_results(self.main.id, self.info['db_scan_name'], files_found)
+        self._save_scan_results(files_found)
 
         end_time = datetime.now()
         #info('File search completed. Elapsed: {}'.format(end_time - start_time))

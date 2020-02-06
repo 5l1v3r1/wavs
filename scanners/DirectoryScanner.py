@@ -12,6 +12,8 @@ class DirectoryScanner:
     """ This module is used to scan a web application for exposed directories
     """
 
+    __wavs_mod__ = True
+
     info = {
         "name": "Directory Scanner",
         "db_table_name": "directories_discovered",

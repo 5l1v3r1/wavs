@@ -20,6 +20,9 @@ class SQLInjectionScanner:
 
         TODO: need to test for blind SQL attacks
     """
+
+    __wavs_mod__ = True
+
     info = {
         "name": "SQL Injection Scanner",
         "desc": "Scan the web application for SQL injections",
@@ -77,7 +80,18 @@ class SQLInjectionScanner:
     def _construct_post_params(self, params):
         param_dict = {}
         for p in params:
-            param_dict['p'] = 'test'
+            param_dict[p] = 'test'
+
+        return param_dict
+
+    def _check_sql_error(self, param, page, page_text):
+        sql_error_strings = ['unrecognized token', 'syntax error']
+
+        if any([err_string in page_text for err_string in sql_error_strings]):
+            if not (page, param) in self.injectable_params:
+                if self.main.options['verbose']:
+                    success(f'SQLi vulnerable parameter: {page}/{param}')
+                self.injectable_params.append((page, param))
 
 
     def _run_thread(self, param):
@@ -85,10 +99,9 @@ class SQLInjectionScanner:
         page = param[1]
 
         # TODO: get below from database
-        sql_injections = ['%27', '%27 OR 1=1', '%27 OR 1=1-- -']
-        sql_error_strings = ['unrecognized token', 'syntax error']
+        sql_injections = ["'", "' OR 1=1", "' OR 1=1-- -"]
 
-        injectable_params = []
+        self.injectable_params = []
         inject_params = param[2].split(', ')
 
         if method == 'GET':
@@ -99,19 +112,23 @@ class SQLInjectionScanner:
                     final_url = url.replace(f'{p}=test', f'{p}={injection}')
 
                     resp = http_get_request(final_url, self.main.cookies)
-
-                    if (any([err_string in resp.text for err_string in sql_error_strings])):
-                        if not p in injectable_params:
-                            if self.main.options['verbose']:
-                                success(f'SQLi vulnerable parameter: {page}/{p}')
-                            injectable_params.append((page, p))
-
-            return injectable_params
+                    self._check_sql_error(p, page, resp.text)
 
         elif method == 'POST':
             # construct the url to make the request to
-            url = f'http://{self.main.host}:{self.main.host}/{page}'
-            params =
+            url = f'http://{self.main.host}:{self.main.port}/{page}'
+
+            for p in inject_params:
+                params = self._construct_post_params(inject_params)
+
+                for injection in sql_injections:
+                    params[p] = injection
+
+                    resp = http_post_request(url, params, self.main.cookies)
+                    self._check_sql_error(p, page, resp.text)
+
+        return self.injectable_params
+
 
     def run_module(self):
         info('Searching for SQL injections...')

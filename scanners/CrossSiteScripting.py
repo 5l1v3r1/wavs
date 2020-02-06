@@ -10,8 +10,10 @@ from utils import success, warning, info
 
 class CrossSiteScripting:
     """ This module is used to scan for cross site scripting (XSS) vulnerabilities
-        in a web application. It does this 
+        in a web application. It does this
     """
+
+    __wavs_mod__ = True
 
     info = {
         "name": "",

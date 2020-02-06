@@ -27,6 +27,7 @@ class ScannerTemplate:
             category, or a new one.
 
         @required properties:
+            __wavs_mod__ - module must contain this propery and it must be true
             info['name'] - the name of the module, needs to match name in the
                            conf/config.json file to correctly load the module
 

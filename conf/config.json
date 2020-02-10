@@ -13,7 +13,8 @@
     { "name" : "File Scanner", "path" : "scanners/FileScanner" },
     { "name" : "Site Crawler", "path" : "scanners/Crawler" },
     { "name" : "HTML Parser", "path" : "scanners/HTMLParser" },
-    { "name" : "SQL Injection Scanner", "path": "scanners/SQLInjectionScanner" }
+    { "name" : "SQL Injection Scanner", "path": "scanners/SQLInjectionScanner" },
+    { "name" : "Local File Inclusion", "path": "scanners/LFI"}
   ],
 
   "scan types" :
@@ -23,7 +24,8 @@
         "File Scanner",
         "Site Crawler",
         "HTML Parser",
-        "SQL Injection Scanner"
+        "SQL Injection Scanner",
+        "Local File Inclusion"
       ],
       "initial" : [
         "Initial Scanner"

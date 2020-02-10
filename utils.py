@@ -29,7 +29,9 @@ colorama.init(autoreset=True)
 
 def load_module(package_name, class_name):
     try:
-        module = importlib.import_module('{}.{}'.format(package_name, class_name))
+        print(f'trying to import {class_name}')
+        module = importlib.import_module(f'{package_name}.{class_name}')
+        print('done')
 
         for _class in dir(module):
             obj = getattr(module, _class)
@@ -104,7 +106,7 @@ def cookie_parse(cookie_string):
 def banner_colour(banner):
     print(Fore.CYAN + banner)
 
-def _print_status(message, type):
+def _print_status(message, type, prepend):
     assert(type in ['success', 'warning', 'info'])
 
     # TODO: load in verbosity option from config file
@@ -125,16 +127,16 @@ def _print_status(message, type):
 
     # TODO: sort this out ->
     if VERBOSITY or type == 'warning':
-        print(colour + '[{}] {}'.format(status_code, message))
+        print(colour + f'{prepend}[{status_code}] {message}')
 
-def success(message):
-    _print_status(message, 'success')
+def success(message, prepend=''):
+    _print_status(message, 'success', prepend)
 
-def warning(message):
-    _print_status(message, 'warning')
+def warning(message, prepend=''):
+    _print_status(message, 'warning', prepend)
 
-def info(message):
-    _print_status(message, 'info')
+def info(message, prepend=''):
+    _print_status(message, 'info', prepend)
 
 
 ###############################################################################
@@ -225,8 +227,25 @@ def db_get_wordlist(wordlist_name, group_name):
 
     return wordlist
 
+def db_get_wordlist_generic(table_name, column_names, filter=None):
+    """
 
-def db_wordlist_add_words(wordlist, words, group='general'):
+        @param column_names -   a string list, separated by commas
+        @param filter -         a tuple (column_name, criteria)
+    """
+    c = db_get_connection(DB_FILE)
+
+    if not filter:
+        sql_get_wordlist = f"SELECT {column_names} FROM '{table_name}'"
+    else:
+        sql_get_wordlist = f"SELECT {column_names} FROM '{table_name}' WHERE {filter[0]} = '{filter[1]}'"
+
+    result = _db_get_data(c, sql_get_wordlist)
+
+    return result
+
+
+def db_wordlist_add_words(wordfile, table_name, words, group='general'):
     """ insert words into a wordlist table
 
         :param wordlist:    the wordlist to add the words to
@@ -238,9 +257,13 @@ def db_wordlist_add_words(wordlist, words, group='general'):
     # create a connection to the database
     c = db_get_connection(DB_FILE)
 
+    words = []
+    with open(wordfile, 'r') as f:
+        for line in f:
+            words.append(line)
+
     for word in words:
-        sql_add_words = "INSERT INTO {}(word, type) VALUES('{}', '{}');".format(wordlist, word, group)
-        print(sql_add_words)
+        sql_add_words = f"INSERT INTO {table_name}(injection_string, type) VALUES('{word}', '{group}');"
         db_execute_statement(c, sql_add_words)
 
     c.close()

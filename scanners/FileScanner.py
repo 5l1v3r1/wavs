@@ -110,7 +110,8 @@ class FileScanner:
         info('Searching for files...')
 
         # TODO: create a file wordlist
-        word_list = db_get_wordlist('directory', 'general')
+        # word_list = db_get_wordlist('directory', 'general')
+        word_list = db_get_wordlist('dir_test', 'general')
 
         # create the threads
         # need to let user change the number of threads used

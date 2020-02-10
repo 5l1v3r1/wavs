@@ -1,3 +1,4 @@
+import re
 import requests
 
 from datetime import datetime
@@ -7,9 +8,10 @@ from multiprocessing import Pool
 from utils import db_get_wordlist
 from utils import success, warning, info
 from utils import http_get_request, http_post_request
-from utils import load_scan_results, save_scan_results, db_table_exists, db_create_table
+from utils import load_scan_results, save_scan_results, db_table_exists, db_create_table, db_get_wordlist, db_get_wordlist_generic
+from scanners.InjectionScannerBase import InjectionScannerBase
 
-class SQLInjectionScanner:
+class SQLInjectionScanner(InjectionScannerBase):
     """ This module tests a web application for the SQL injection vulnerability,
         it does this by injecting SQL 'attack' strings into parameters and checking
         the resulting webpage for SQL error messages.
@@ -49,85 +51,12 @@ class SQLInjectionScanner:
             db_create_table(sql_create_statement)
 
 
-    def _load_scan_results(self):
-        """ loads in results from previous scans, should be overwritten to load
-            in specific results needed for this module
-        """
-        # load directories from database, results are a list of tuples
-        inject_params = load_scan_results(self.main.id, 'method, action, parameter', 'parameters_discovered')
-        return inject_params
-
     def _save_scan_results(self, results):
         full_list = []
         for r in results:
             full_list.extend(r)
 
         save_scan_results(self.main.id, self.info['db_table_name'], "page, sql_injection_param", full_list)
-
-    def _construct_get_url(self, page, params):
-        url = f'http://{self.main.host}:{self.main.port}/{page}?'
-
-        # http://localhost:80/index.php?username=test&password=test&submit=submit
-
-        for param in params:
-            url += f'{param}=test&'
-
-        # remove the last &
-        url = url[:-1]
-
-        return url
-
-    def _construct_post_params(self, params):
-        param_dict = {}
-        for p in params:
-            param_dict[p] = 'test'
-
-        return param_dict
-
-    def _check_sql_error(self, param, page, page_text):
-        sql_error_strings = ['unrecognized token', 'syntax error']
-
-        if any([err_string in page_text for err_string in sql_error_strings]):
-            if not (page, param) in self.injectable_params:
-                if self.main.options['verbose']:
-                    success(f'SQLi vulnerable parameter: {page}/{param}')
-                self.injectable_params.append((page, param))
-
-
-    def _run_thread(self, param):
-        method = param[0]
-        page = param[1]
-
-        # TODO: get below from database
-        sql_injections = ["'", "' OR 1=1", "' OR 1=1-- -"]
-
-        self.injectable_params = []
-        inject_params = param[2].split(', ')
-
-        if method == 'GET':
-            url = self._construct_get_url(page, inject_params)
-
-            for p in inject_params:
-                for injection in sql_injections:
-                    final_url = url.replace(f'{p}=test', f'{p}={injection}')
-
-                    resp = http_get_request(final_url, self.main.cookies)
-                    self._check_sql_error(p, page, resp.text)
-
-        elif method == 'POST':
-            # construct the url to make the request to
-            url = f'http://{self.main.host}:{self.main.port}/{page}'
-
-            for p in inject_params:
-                params = self._construct_post_params(inject_params)
-
-                for injection in sql_injections:
-                    params[p] = injection
-
-                    resp = http_post_request(url, params, self.main.cookies)
-                    self._check_sql_error(p, page, resp.text)
-
-        return self.injectable_params
 
 
     def run_module(self):
@@ -136,6 +65,9 @@ class SQLInjectionScanner:
         # get the injectable params
         #params = self.main.scan_results['params_found']
         params = self._load_scan_results()
+        self.attack_strings = db_get_wordlist('sqli', 'error')
+        self.re_search_strings = db_get_wordlist_generic('sql_errors', 'message')
+        self.re_search_strings = [s[0] for s in self.re_search_strings]
 
         # pass them off to threads
         thread_pool = Pool(self.main.options['threads'])

@@ -4,7 +4,7 @@ from datetime import datetime
 from functools import partial
 from multiprocessing import Pool
 
-from utils import db_get_wordlist, db_table_exists, db_create_table, load_scan_results
+from utils import db_get_wordlist, db_table_exists, db_create_table, load_scan_results, db_get_wordlist_generic, save_scan_results
 from utils import http_get_request
 from utils import success, warning, info
 from scanners.InjectionScannerBase import InjectionScannerBase
@@ -56,15 +56,22 @@ class LFI(InjectionScannerBase):
             @param: results -       a list of the results from the module, should
                                     be a list of text
         """
-        pass
+        full_list = []
+        for r in results:
+            full_list.extend(r)
+
+        save_scan_results(self.main.id, self.info['db_table_name'], "page, lfi_param", full_list)
 
 
     def run_module(self):
         info("Searching for local file inclusions...")
 
         # load in a list of lfi attach strings
-        self.attack_strings = ['/etc/passwd']
-        self.re_search_strings = ['root:x:']
+        self.attack_strings = db_get_wordlist_generic('lfi', 'word')
+        self.attack_strings = [s[0] for s in self.attack_strings]
+
+        self.re_search_strings = db_get_wordlist_generic('lfi_detect', 'regex')
+        self.re_search_strings = [s[0] for s in self.re_search_strings]
 
         # load in params
         injectable_params = self._load_scan_results()
@@ -80,3 +87,4 @@ class LFI(InjectionScannerBase):
         thread_pool.join()
 
         # save the results
+        self._save_scan_results(results)

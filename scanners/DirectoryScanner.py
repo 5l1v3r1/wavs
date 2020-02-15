@@ -72,7 +72,7 @@ class DirectoryScanner:
         # check if the response code is a success code
         if (resp.status_code in self.main.success_codes):
             if self.main.options['verbose']:
-                success(word)
+                success(word, prepend='  ')
             return word
 
     def run_module(self):

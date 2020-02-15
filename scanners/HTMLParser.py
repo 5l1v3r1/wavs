@@ -185,7 +185,7 @@ class HTMLParser:
 
         if self.main.options['verbose']:
             for params in final:
-                success(f'Found params: {params["action"]}/{" ".join(params["params"])}')
+                success(f'Found params: {params["action"]}/{" ".join(params["params"])}', prepend='  ')
 
         self.main.scan_results['params_found'] = final
         self._save_scan_results(final)

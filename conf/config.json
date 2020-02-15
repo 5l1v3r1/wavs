@@ -13,8 +13,11 @@
     { "name" : "File Scanner", "path" : "scanners/FileScanner" },
     { "name" : "Site Crawler", "path" : "scanners/Crawler" },
     { "name" : "HTML Parser", "path" : "scanners/HTMLParser" },
-    { "name" : "SQL Injection Scanner", "path": "scanners/SQLInjectionScanner" },
-    { "name" : "Local File Inclusion", "path": "scanners/LFI"}
+    { "name" : "SQL Injection Scanner", "path" : "scanners/SQLInjectionScanner" },
+    { "name" : "Local File Inclusion", "path" : "scanners/LFI" },
+    { "name" : "Cross Site Scripting", "path" : "scanners/CrossSiteScripting" },
+    { "name" : "Cross Site Request Forgery", "path" : "scanners/CSRF" },
+    { "name" : "Information Disclosure", "path" : "scanners/InformationDisclosure" }
   ],
 
   "scan types" :
@@ -25,7 +28,10 @@
         "Site Crawler",
         "HTML Parser",
         "SQL Injection Scanner",
-        "Local File Inclusion"
+        "Local File Inclusion",
+        "Cross Site Scripting",
+        "Cross Site Request Forgery",
+        "Information Disclosure"
       ],
       "initial" : [
         "Initial Scanner"

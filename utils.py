@@ -29,9 +29,7 @@ colorama.init(autoreset=True)
 
 def load_module(package_name, class_name):
     try:
-        print(f'trying to import {class_name}')
         module = importlib.import_module(f'{package_name}.{class_name}')
-        print('done')
 
         for _class in dir(module):
             obj = getattr(module, _class)

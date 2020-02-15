@@ -6,16 +6,16 @@ from multiprocessing import Pool
 
 from utils import http_get_request
 from utils import success, warning, info
-from utils import db_get_wordlist, load_scan_results, save_scan_results, db_table_exists, db_create_table
+from utils import db_get_wordlist, load_scan_results, save_scan_results, db_table_exists, db_create_table, db_get_wordlist_generic
 
 
-class FileScanner:
+class InformationDisclosure:
     __wavs_mod__ = True
 
     info = {
-        "name": "File Scanner",
-        "db_table_name": "files_discovered",
-        "desc": "Scans for files once ",
+        "name": "Information Disclosure",
+        "db_table_name": "info_disc_discovered",
+        "desc": "Scans for files that should be accessible",
         "author": "@ryan_ritchie"
     }
 
@@ -61,6 +61,7 @@ class FileScanner:
             :return (list):         a list of found files
         """
         found_files = []
+        backup_extensions = self.extension_list
 
         # construct the url to be used in the GET request
         url = 'http://{}:{}/'.format(self.main.host, self.main.port)
@@ -68,7 +69,7 @@ class FileScanner:
             url += (directory + '/')
 
         # loop through file extensions to be searched for
-        for ext in self.main.file_extensions:
+        for ext in backup_extensions:
             # check we dont go to restricted path
             if self.main.restrict_paths:
                 if f'{word}{ext}' in self.main.restrict_paths:
@@ -107,10 +108,11 @@ class FileScanner:
         #                                            self.main.port,
         #                                            datetime.strftime(start_time,
         #                                             '%d/%b/%Y %H:%M:%S')))
-        info('Searching for files...')
+        info('Searching for information disclosure...')
 
-        # TODO: create a file wordlist
-        # word_list = db_get_wordlist('directory', 'general')
+        self.extension_list = db_get_wordlist_generic('info_disc', 'extension')
+        self.extension_list = [ext[0] for ext in self.extension_list]
+
         word_list = db_get_wordlist('dir_test', 'general')
 
         # create the threads

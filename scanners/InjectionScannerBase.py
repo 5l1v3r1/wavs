@@ -65,6 +65,9 @@ class InjectionScannerBase:
 
         search_strings = self.re_search_strings
 
+        #print(search_strings)
+        #print(page_text)
+
         if any([re.search(s, page_text) for s in search_strings]):
             if not (page, param) in self.injectable_params:
                 if self.main.options['verbose']:

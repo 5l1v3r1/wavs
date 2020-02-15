@@ -8,6 +8,9 @@ from utils import success, warning, info
 from utils import db_get_wordlist, load_scan_results, save_scan_results, db_table_exists, db_create_table
 from utils import http_get_request
 
+# TODO: make crawler recursive
+# TODO: parse robots.txt
+# TODO: parse sitemap.xml
 class Crawler:
     __wavs_mod__ = True
 
@@ -35,6 +38,15 @@ class Crawler:
                                     f'UNIQUE(scan_id, file));')
             db_create_table(sql_create_statement)
 
+
+    def parse_robots(self):
+        # construct url for robots.txt
+        url = f'http://{self.main.host}:{self.main.port}/robots.txt'
+        resp = http_get_request(url)
+
+        # checking is robots.txt exists
+        if resp.status_code == 200:
+            pass
 
     def _load_scan_results(self):
         """ loads in results from previous scans, should be overwritten to load
@@ -69,9 +81,11 @@ class Crawler:
                 if '?' in href:
                     # get page from href
                     linked_page = href.split('?')[0]
+                else:
+                    linked_page = href
 
-                    if linked_page not in self.found_pages:
-                        return_links.append(f'{linked_page}')
+                if linked_page not in self.found_pages:
+                    return_links.append(f'{linked_page}')
 
         return return_links
 

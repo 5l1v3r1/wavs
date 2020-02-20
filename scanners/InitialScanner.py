@@ -8,7 +8,7 @@ from multiprocessing import Pool
 from functools import partial
 
 from utils import success, warning, info
-from utils import db_get_wordlist
+from utils import db_get_wordlist, save_scan_results
 from utils import http_get_request
 
 class InitialScanner:
@@ -40,7 +40,7 @@ class InitialScanner:
             :return (int): 0 - server is up and responding
                            1 - server is not responding
         '''
-        resp = http_get_request(f'http://{self.main.host}:{self.main.port}', self.main.cookies)
+        resp = http_get_request(f'{self.main.get_host_url_base()}', self.main.cookies)
 
         if resp == 1:
             return 1
@@ -61,7 +61,7 @@ class InitialScanner:
         should_not_find = ''.join(random.choice(string.ascii_lowercase) for i in range(20))
 
         # make a get request with random string as a directory
-        resp = requests.get('http://{}:{}/{}'.format(self.main.host, self.main.port, should_not_find), self.main.cookies)
+        resp = requests.get(f'{self.main.get_host_url_base()}/{should_not_find}', self.main.cookies)
 
         # check for success code
         if resp.status_code == 200:
@@ -71,10 +71,49 @@ class InitialScanner:
         # TODO: switch to fuzzing mode?
         return 0
 
+    def _parse_robots(self):
+        # construct url for robots.txt
+        url = f'{self.main.get_host_url_base()}/robots.txt'
+        resp = http_get_request(url, self.main.cookies)
+
+        dir_paths = []
+        file_paths = []
+
+        # checking is robots.txt exists
+        if resp.status_code == 200:
+            success('robots.txt found', prepend='  ')
+            info('parsing robots.txt', prepend='  ')
+            lines = resp.text.split('\n')
+
+            # if there are no lines then theres nothing to do
+            if not lines:
+                return
+
+            # loop through every line in robots.txt
+            for line in lines:
+                if line.startswith('Allow:') or line.startswith('Disallow:'):
+                    path = line.split(': ')[1]
+                    success(f'Found path: {path}', prepend='    ')
+
+                    if not path:
+                        continue
+
+                    if path[:-1] == '/':
+                        dir_paths.append(path)
+                    else:
+                        file_paths.append(path)
+
+        if dir_paths:
+            save_scan_results(self.main.id, "directories_discovered", "directory", dir_paths)
+
+        if file_paths:
+            save_scan_results(self.main.id, "files_discovered", "file", file_paths)
+
     def _run_thread(self):
         pass
 
     def run_module(self):
+        info('Running initial scans...')
         checks = 0
 
         if self._is_server_up():
@@ -85,3 +124,5 @@ class InitialScanner:
         if checks:
             warning('Scanning cannot continue, check error messages')
             exit()
+
+        self._parse_robots()

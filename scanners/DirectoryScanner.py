@@ -66,7 +66,7 @@ class DirectoryScanner:
             return None
 
         # GET request to the directory
-        url = f'http://{self.main.host}:{self.main.port}/{word}/'
+        url = f'{self.main.get_host_url_base()}/{word}/'
         resp = http_get_request(url, self.main.cookies)
 
         # check if the response code is a success code

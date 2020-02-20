@@ -64,7 +64,7 @@ class InformationDisclosure:
         backup_extensions = self.extension_list
 
         # construct the url to be used in the GET request
-        url = 'http://{}:{}/'.format(self.main.host, self.main.port)
+        url = f'{self.main.get_host_url_base()}/'
         if directory:
             url += (directory + '/')
 

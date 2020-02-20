@@ -125,7 +125,7 @@ def _print_status(message, type, prepend):
 
     # TODO: sort this out ->
     if VERBOSITY or type == 'warning':
-        print(colour + f'{prepend}[{status_code}] {message}')
+        print(colour + f'{prepend}[{status_code}] {message}\n', end='')
 
 def success(message, prepend=''):
     _print_status(message, 'success', prepend)

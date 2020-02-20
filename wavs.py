@@ -30,7 +30,7 @@ CONFIG_FILE_PATH = 'conf/config.json'
 # argument parsing
 arg_parser = argparse.ArgumentParser()
 arg_parser.add_argument('host', help='The url of the web application to be scanned')
-arg_parser.add_argument('--port', type=int, default=80, help='The port the web application is running on')
+arg_parser.add_argument('--port', type=int, default=0, help='The port the web application is running on')
 arg_parser.add_argument('--cookies', help='Cookies to be included in requests, <cookie_name>=<cookie_value>,[...]')
 arg_parser.add_argument('--restrict_paths', default='', help='Paths which should not be visited, /restrict/path/1,/restrict/path/2')
 arg_parser.add_argument('--scan_type', default='default', help='The type of scan to run. Determines which modules run and in what order.')
@@ -41,9 +41,24 @@ args = arg_parser.parse_args()
 
 class WebScanner():
     def __init__(self, arg_parse):
-        # TODO: handle http/https
-        self.host = arg_parse.host
-        self.port = arg_parse.port
+        # check that protocol is supplied
+        if arg_parse.host[:4] != 'http':
+            warning('Please specify the protocol for host, either http or https')
+            exit()
+
+        # split the host into protocol and ip/hostname
+        self.proto, self.host = arg_parse.host.split('://')
+        self.proto += '://'
+
+        # if no port is specified then set port based on protocol
+        if arg_parse.port == 0:
+            if self.proto == 'http://':
+                self.port = 80
+            elif self.proto == 'https://':
+                self.port = 443
+        else:
+            self.port = arg_parse.port
+
         self.cookies = cookie_parse(arg_parse.cookies)
         self.scan_type = arg_parse.scan_type
 
@@ -77,6 +92,9 @@ class WebScanner():
         self.load_config()
         self._banner()
         self.run_modules()
+
+    def get_host_url_base(self):
+        return f'{self.proto}{self.host}:{self.port}'
 
     def _banner(self):
         banner = """

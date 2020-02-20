@@ -41,7 +41,7 @@ class InjectionScannerBase:
         pass
 
     def _construct_get_url(self, page, params):
-        url = f'http://{self.main.host}:{self.main.port}/{page}?'
+        url = f'{self.main.get_host_url_base()}/{page}?'
 
         # http://localhost:80/index.php?username=test&password=test&submit=submit
 
@@ -101,7 +101,7 @@ class InjectionScannerBase:
 
         elif method == 'POST':
             # construct the url to make the request to
-            url = f'http://{self.main.host}:{self.main.port}/{page}'
+            url = f'{self.main.get_host_url_base()}/{page}'
 
             for p in inject_params:
                 params = self._construct_post_params(inject_params)

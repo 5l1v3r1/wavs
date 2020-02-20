@@ -63,7 +63,7 @@ class FileScanner:
         found_files = []
 
         # construct the url to be used in the GET request
-        url = 'http://{}:{}/'.format(self.main.host, self.main.port)
+        url = f'{self.main.get_host_url_base()}/'
         if directory:
             url += (directory + '/')
 

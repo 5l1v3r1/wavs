@@ -140,7 +140,7 @@ class HTMLParser:
             :return (list):         a list of dictionaries containing params
         """
         # get the html
-        url = f'http://{self.main.host}:{self.main.port}/{webpage}'
+        url = f'{self.main.get_host_url_base()}/{webpage}'
         html = http_get_request(url, self.main.cookies).text
 
         # look for params to inject into

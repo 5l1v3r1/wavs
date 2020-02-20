@@ -9,7 +9,6 @@ from utils import db_get_wordlist, load_scan_results, save_scan_results, db_tabl
 from utils import http_get_request
 
 # TODO: make crawler recursive
-# TODO: parse robots.txt
 # TODO: parse sitemap.xml
 class Crawler:
     __wavs_mod__ = True
@@ -39,15 +38,6 @@ class Crawler:
             db_create_table(sql_create_statement)
 
 
-    def parse_robots(self):
-        # construct url for robots.txt
-        url = f'http://{self.main.host}:{self.main.port}/robots.txt'
-        resp = http_get_request(url)
-
-        # checking is robots.txt exists
-        if resp.status_code == 200:
-            pass
-
     def _load_scan_results(self):
         """ loads in results from previous scans, should be overwritten to load
             in specific results needed for this module
@@ -62,53 +52,65 @@ class Crawler:
         save_scan_results(self.main.id, self.info['db_table_name'], "file", results)
 
     def _run_thread(self, page):
+        pass
+
+    def _parse_link(self, link):
+        # remove blanks and param links
+        if not link or link[0] == '?':
+            return
+
+        if not any(x in link for x in ['http://', 'https://']):
+            if '?' in link:
+                # get page from href
+                linked_page = link.split('?')[0]
+            else:
+                linked_page = link
+
+            # check that the page actually exists first
+            page_exists = http_get_request(f'{self.main.get_host_url_base()}/{linked_page}', self.main.cookies).status_code
+            if page_exists in self.main.success_codes:
+                return linked_page
+
+    def _parse_links(self, page):
         # get the html
-        url = f'http://{self.main.host}:{self.main.port}/{page}'
+        url = f'{self.main.get_host_url_base()}/{page}'
         html = http_get_request(url, self.main.cookies).text
 
         # look for params to inject into
         soup = BeautifulSoup(html, 'html.parser')
 
         return_links = []
+
+        # parse all hyperlinks
         for link in soup.find_all('a'):
             href = link.get('href')
+            parsed_href = self._parse_link(href)
 
-            # remove blanks and param links
-            if not href or href[0] == '?':
-                continue
+            if parsed_href:
+                return_links.append(parsed_href)
 
-            if not any(x in href for x in ['http://', 'https://']):
-                if '?' in href:
-                    # get page from href
-                    linked_page = href.split('?')[0]
-                else:
-                    linked_page = href
+        # parse all forms
+        for form in soup.find_all('form'):
+            action = form.get('action')
+            parsed_action = self._parse_link(action)
 
-                if linked_page not in self.found_pages:
-                    return_links.append(f'{linked_page}')
+            if parsed_action:
+                return_links.append(parsed_action)
 
         return return_links
 
     def run_module(self):
         info('Crawling links...')
+
         # get found pages
-        #found_pages = self.main.scan_results['files_found']
         self.found_pages = self._load_scan_results()
 
-        # create the threads
-        thread_pool = Pool(self.main.options['threads'])
+        # loop through all pages found so far
+        loop_pages = self.found_pages
+        for page in loop_pages:
+            for link in self._parse_links(page):
+                if not link in loop_pages:
+                    success(f'Found page: {link}', prepend='  ')
+                    loop_pages.append(link)
 
-        # run the threads with found pages
-        found_links = thread_pool.map(self._run_thread, self.found_pages)
-
-        thread_pool.close()
-        thread_pool.join()
-
-        # get rid of any null value
-        final = []
-        found_links = [final.extend(link) for link in found_links if link]
-
-        # remove duplicates
-        final = list(set(final))
-
-        self._save_scan_results(final)
+        self._save_scan_results(loop_pages)

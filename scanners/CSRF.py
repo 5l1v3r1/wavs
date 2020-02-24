@@ -4,9 +4,8 @@ from datetime import datetime
 from functools import partial
 from multiprocessing import Pool
 
-from utils import http_get_request
-from utils import success, warning, info
-from utils import db_get_wordlist, load_scan_results, save_scan_results, db_table_exists, db_create_table, db_get_wordlist_generic
+from util_functions import http_get_request
+from util_functions import success, warning, info
 
 
 class CSRF:
@@ -28,14 +27,14 @@ class CSRF:
         """ used to create database table needed to store results for this
             module. should be overwritten to meet this modules storage needs
         """
-        if not db_table_exists(self.info['db_table_name']):
+        if not self.main.db.db_table_exists(self.info['db_table_name']):
             sql_create_statement = (f'CREATE TABLE  IF NOT EXISTS {self.info["db_table_name"]}('
                                     f'id INTEGER PRIMARY KEY AUTOINCREMENT,'
                                     f'scan_id INTEGER NOT NULL,'
                                     f'page TEXT,'
                                     f'form TEXT,'
                                     f'UNIQUE(scan_id, page, form));')
-            db_create_table(sql_create_statement)
+            self.main.db.db_create_table(sql_create_statement)
 
 
     def _load_scan_results(self):
@@ -43,7 +42,9 @@ class CSRF:
             in specific results needed for this module
         """
         # load directories from database, results are a list of tuples
-        forms_discovered = load_scan_results(self.main.id, 'method,action,parameter', 'parameters_discovered')
+        forms_discovered = self.main.db.load_scan_results(self.main.id,
+                                                          'method,action,parameter',
+                                                          'parameters_discovered')
 
         # convert the list of tuples into a 1D list
         return forms_discovered
@@ -51,7 +52,10 @@ class CSRF:
     def _save_scan_results(self, results):
         """ dont have to worry about inserting id, scan_id
         """
-        save_scan_results(self.main.id, self.info['db_table_name'], "page,form", results)
+        self.main.db.save_scan_results(self.main.id,
+                                       self.info['db_table_name'],
+                                       "page,form",
+                                       results)
 
     def _run_thread(self, form):
         """ search through form parameters to find anti-csrf tokens
@@ -92,7 +96,8 @@ class CSRF:
         #                                             '%d/%b/%Y %H:%M:%S')))
         info('Searching for CSRF...')
 
-        self.csrf_fields = db_get_wordlist_generic('csrf', 'csrf_field_name')
+        self.csrf_fields = self.main.db.db_get_wordlist_generic('csrf',
+                                                                'csrf_field_name')
         forms_discovered = self._load_scan_results()
 
         # create the threads

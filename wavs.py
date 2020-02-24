@@ -18,10 +18,10 @@ from functools import partial
 from multiprocessing import Pool
 
 # my imports
-from utils import load_module
-from utils import cookie_parse
-from utils import db_get_wordlist, save_new_scan
-from utils import success, warning, info, banner_colour
+from util_functions import load_module
+from util_functions import cookie_parse
+from util_functions import success, warning, info, banner_colour
+from utils.DBManager import DBManager
 
 
 # global constants
@@ -34,6 +34,7 @@ arg_parser.add_argument('--port', type=int, default=0, help='The port the web ap
 arg_parser.add_argument('--cookies', help='Cookies to be included in requests, <cookie_name>=<cookie_value>,[...]')
 arg_parser.add_argument('--restrict_paths', default='', help='Paths which should not be visited, /restrict/path/1,/restrict/path/2')
 arg_parser.add_argument('--scan_type', default='default', help='The type of scan to run. Determines which modules run and in what order.')
+arg_parser.add_argument('--generator', default=False, help='Runs the attack string text generator')
 args = arg_parser.parse_args()
 
 # TODO: make sure that modules that depend on previous results handle the lack
@@ -73,25 +74,22 @@ class WebScanner():
         # TODO: add way to change success codes
         self.success_codes = [200, 201, 202, 203, 204, 301, 302, 303, 304]
         self.file_extensions = ['.html', '.php']
-
         self.options = {}
-
-        # dictionary to hold scan results, custom modules can add results
-        self.scan_results = {
-            'directories_found': [],
-            'files_found': [],
-            'params_found': []
-        }
-
         self.modules = []
         self.scan_types = []
 
+        self.db = DBManager()
+        
         # save the scan in the database
-        self.id = save_new_scan(self)
+        self.id = self.db.save_new_scan(self)
 
         self.load_config()
         self._banner()
-        self.run_modules()
+
+        if arg_parse.generator:
+            self.run_text_generation()
+        else:
+            self.run_modules()
 
     def get_host_url_base(self):
         return f'{self.proto}{self.host}:{self.port}'
@@ -156,6 +154,7 @@ Web Application Vulnerability Scanner by Ryan Ritchie
         self.options['display_banner'] = config_dict['options']['display_banner']
         self.options['threads'] = config_dict['options']['threads']
         self.options['verbose'] = config_dict['options']['verbose']
+        self.options['text_gen_epochs'] = config_dict['options']['text_generator_epochs']
 
 
     def _load_modules(self, modules_list):
@@ -185,6 +184,10 @@ Web Application Vulnerability Scanner by Ryan Ritchie
             modules_loaded[temp_module.info["name"]] = temp_module
 
         return modules_loaded
+
+    def run_text_generation(self):
+        for module in self.modules:
+            module.generate_text()
 
     def run_modules(self):
         if not self.scan_type in self.scan_types:

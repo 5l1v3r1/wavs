@@ -5,10 +5,8 @@ from datetime import datetime
 from functools import partial
 from multiprocessing import Pool
 
-from utils import db_get_wordlist
-from utils import success, warning, info
-from utils import http_get_request, http_post_request
-from utils import load_scan_results, save_scan_results, db_table_exists, db_create_table, db_get_wordlist, db_get_wordlist_generic
+from util_functions import success, warning, info
+from util_functions import http_get_request, http_post_request
 from scanners.InjectionScannerBase import InjectionScannerBase
 
 class SQLInjectionScanner(InjectionScannerBase):
@@ -41,14 +39,14 @@ class SQLInjectionScanner(InjectionScannerBase):
         """ used to create database table needed to store results for this
             module. should be overwritten to meet this modules storage needs
         """
-        if not db_table_exists(self.info['db_table_name']):
+        if not self.main.db.db_table_exists(self.info['db_table_name']):
             sql_create_statement = (f'CREATE TABLE IF NOT EXISTS {self.info["db_table_name"]}('
                                     f'id INTEGER PRIMARY KEY AUTOINCREMENT,'
                                     f'scan_id INTEGER NOT NULL,'
                                     f'page TEXT NOT NULL,'
                                     f'sql_injection_param TEXT NOT NULL,'
                                     f'UNIQUE(scan_id, page, sql_injection_param));')
-            db_create_table(sql_create_statement)
+            self.main.db.db_create_table(sql_create_statement)
 
 
     def _save_scan_results(self, results):
@@ -56,17 +54,20 @@ class SQLInjectionScanner(InjectionScannerBase):
         for r in results:
             full_list.extend(r)
 
-        save_scan_results(self.main.id, self.info['db_table_name'], "page, sql_injection_param", full_list)
+        self.main.db.save_scan_results(self.main.id,
+                                       self.info['db_table_name'],
+                                       "page, sql_injection_param",
+                                       full_list)
 
 
     def run_module(self):
         info('Searching for SQL injections...')
 
         # get the injectable params
-        #params = self.main.scan_results['params_found']
         params = self._load_scan_results()
-        self.attack_strings = db_get_wordlist('sqli', 'error')
-        self.re_search_strings = db_get_wordlist_generic('sql_errors', 'message')
+        self.attack_strings = self.main.db.db_get_wordlist('sqli', 'error')
+        self.re_search_strings = self.main.db.db_get_wordlist_generic('sql_errors',
+                                                                      'message')
         self.re_search_strings = [s[0] for s in self.re_search_strings]
 
         # pass them off to threads

@@ -4,9 +4,8 @@ from datetime import datetime
 from functools import partial
 from multiprocessing import Pool
 
-from utils import http_get_request
-from utils import success, warning, info
-from utils import db_get_wordlist, load_scan_results, save_scan_results, db_table_exists, db_create_table
+from util_functions import http_get_request
+from util_functions import success, warning, info
 
 
 class FileScanner:
@@ -28,13 +27,13 @@ class FileScanner:
         """ used to create database table needed to store results for this
             module. should be overwritten to meet this modules storage needs
         """
-        if not db_table_exists(self.info['db_table_name']):
+        if not self.main.db.db_table_exists(self.info['db_table_name']):
             sql_create_statement = (f'CREATE TABLE  IF NOT EXISTS {self.info["db_table_name"]}('
                                     f'id INTEGER PRIMARY KEY AUTOINCREMENT,'
                                     f'scan_id INTEGER NOT NULL,'
                                     f'file TEXT,'
                                     f'UNIQUE(scan_id, file));')
-            db_create_table(sql_create_statement)
+            self.main.db.db_create_table(sql_create_statement)
 
 
     def _load_scan_results(self):
@@ -42,7 +41,9 @@ class FileScanner:
             in specific results needed for this module
         """
         # load directories from database, results are a list of tuples
-        dirs_discovered = load_scan_results(self.main.id, 'directory', 'directories_discovered')
+        dirs_discovered = self.main.db.load_scan_results(self.main.id,
+                                                         'directory',
+                                                         'directories_discovered')
 
         # convert the list of tuples into a 1D list
         return [d[0] for d in dirs_discovered]
@@ -50,7 +51,10 @@ class FileScanner:
     def _save_scan_results(self, results):
         """ dont have to worry about inserting id, scan_id
         """
-        save_scan_results(self.main.id, self.info['db_table_name'], "file", results)
+        self.main.db.save_scan_results(self.main.id,
+                                       self.info['db_table_name'],
+                                       "file",
+                                       results)
 
     def _run_thread(self, directory, word):
         """ makes a HTTP GET request to check if a file exists. to be used as
@@ -111,7 +115,7 @@ class FileScanner:
 
         # TODO: create a file wordlist
         # word_list = db_get_wordlist('directory', 'general')
-        word_list = db_get_wordlist('dir_test', 'general')
+        word_list = self.main.db.db_get_wordlist('dir_test', 'general')
 
         # create the threads
         # need to let user change the number of threads used

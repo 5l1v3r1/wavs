@@ -1,3 +1,4 @@
 colorama
 sqlite3
 beautifulsoup4
+textgenrnn

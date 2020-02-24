@@ -4,7 +4,9 @@
     "file_extensions" : [".html", ".php"],
     "display_banner" : true,
     "threads" : 8,
-    "verbose" : true
+    "verbose" : true,
+    "text_generator_epochs": 1,
+    "text_generator_temp": 0.7
   },
 
   "modules" : [

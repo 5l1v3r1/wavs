@@ -7,9 +7,8 @@ from datetime import datetime
 from multiprocessing import Pool
 from functools import partial
 
-from utils import success, warning, info
-from utils import db_get_wordlist, save_scan_results
-from utils import http_get_request
+from util_functions import success, warning, info
+from util_functions import http_get_request
 
 class InitialScanner:
     __wavs_mod__ = True
@@ -104,10 +103,16 @@ class InitialScanner:
                         file_paths.append(path)
 
         if dir_paths:
-            save_scan_results(self.main.id, "directories_discovered", "directory", dir_paths)
+            self.main.db.save_scan_results(self.main.id,
+                                           "directories_discovered",
+                                           "directory",
+                                           dir_paths)
 
         if file_paths:
-            save_scan_results(self.main.id, "files_discovered", "file", file_paths)
+            self.main.db.save_scan_results(self.main.id,
+                                           "files_discovered",
+                                           "file",
+                                           file_paths)
 
     def _run_thread(self):
         pass

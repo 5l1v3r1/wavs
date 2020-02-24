@@ -2,9 +2,8 @@ from multiprocessing import Pool
 from bs4 import BeautifulSoup
 
 from datetime import datetime
-from utils import load_scan_results, save_scan_results, db_table_exists, db_create_table
-from utils import success, warning, info
-from utils import http_get_request
+from util_functions import success, warning, info
+from util_functions import http_get_request
 
 class HTMLParser:
     __wavs_mod__ = True
@@ -25,7 +24,7 @@ class HTMLParser:
         """ used to create database table needed to store results for this
             module. should be overwritten to meet this modules storage needs
         """
-        if not db_table_exists(self.info['db_table_name']):
+        if not self.main.db.db_table_exists(self.info['db_table_name']):
             sql_create_statement = (f'CREATE TABLE IF NOT EXISTS {self.info["db_table_name"]}('
                                     f'id INTEGER PRIMARY KEY AUTOINCREMENT,'
                                     f'scan_id INTEGER NOT NULL,'
@@ -33,7 +32,7 @@ class HTMLParser:
                                     f'action TEXT NOT NULL,'
                                     f'parameter TEXT NOT NULL,'
                                     f'UNIQUE(scan_id, method, action, parameter));')
-            db_create_table(sql_create_statement)
+            self.main.db.db_create_table(sql_create_statement)
 
 
     def _load_scan_results(self):
@@ -41,7 +40,9 @@ class HTMLParser:
             in specific results needed for this module
         """
         # load directories from database, results are a list of tuples
-        files_discovered = load_scan_results(self.main.id, 'file', 'files_discovered')
+        files_discovered = self.main.db.load_scan_results(self.main.id,
+                                                          'file',
+                                                          'files_discovered')
 
         # convert the list of tuples into a 1D list
         return [f[0] for f in files_discovered]
@@ -51,7 +52,10 @@ class HTMLParser:
         for r in results:
             full_list.append((r['method'], r['action'], ', '.join(r['params'])))
 
-        save_scan_results(self.main.id, self.info['db_table_name'], "method, action, parameter", full_list)
+        self.main.db.save_scan_results(self.main.id,
+                                       self.info['db_table_name'],
+                                       "method, action, parameter",
+                                       full_list)
 
     def _extract_link_params(self, link):
         assert('?' in link)
@@ -187,7 +191,6 @@ class HTMLParser:
             for params in final:
                 success(f'Found params: {params["action"]}/{" ".join(params["params"])}', prepend='  ')
 
-        self.main.scan_results['params_found'] = final
         self._save_scan_results(final)
 
         end_time = datetime.now()

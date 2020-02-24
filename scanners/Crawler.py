@@ -1,15 +1,15 @@
 import requests
+import signal
 
 from datetime import datetime
 from multiprocessing import Pool
 from bs4 import BeautifulSoup
+from http.server import HTTPServer
 
-from utils import success, warning, info
-from utils import db_get_wordlist, load_scan_results, save_scan_results, db_table_exists, db_create_table
-from utils import http_get_request
+from util_functions import success, warning, info
+from util_functions import http_get_request
+from utils.CrawlerProxy import CrawlerProxy
 
-# TODO: make crawler recursive
-# TODO: parse sitemap.xml
 class Crawler:
     __wavs_mod__ = True
 
@@ -29,13 +29,13 @@ class Crawler:
         """ used to create database table needed to store results for this
             module. should be overwritten to meet this modules storage needs
         """
-        if not db_table_exists(self.info['db_table_name']):
+        if not self.main.db.db_table_exists(self.info['db_table_name']):
             sql_create_statement = (f'CREATE TABLE IF NOT EXISTS {self.info["db_table_name"]}('
                                     f'id INTEGER PRIMARY KEY AUTOINCREMENT,'
                                     f'scan_id INTEGER NOT NULL,'
                                     f'file TEXT,'
                                     f'UNIQUE(scan_id, file));')
-            db_create_table(sql_create_statement)
+            self.db_manager.db_create_table(sql_create_statement)
 
 
     def _load_scan_results(self):
@@ -43,13 +43,18 @@ class Crawler:
             in specific results needed for this module
         """
         # load directories from database, results are a list of tuples
-        files_discovered = load_scan_results(self.main.id, 'file', 'files_discovered')
+        files_discovered = self.main.db.load_scan_results(self.main.id,
+                                                          'file',
+                                                          'files_discovered')
 
         # convert the list of tuples into a 1D list
         return [f[0] for f in files_discovered]
 
     def _save_scan_results(self, results):
-        save_scan_results(self.main.id, self.info['db_table_name'], "file", results)
+        self.main.db.save_scan_results(self.main.id,
+                                       self.info['db_table_name'],
+                                       "file",
+                                       results)
 
     def _run_thread(self, page):
         pass
@@ -67,7 +72,8 @@ class Crawler:
                 linked_page = link
 
             # check that the page actually exists first
-            page_exists = http_get_request(f'{self.main.get_host_url_base()}/{linked_page}', self.main.cookies).status_code
+            url = f'{self.main.get_host_url_base()}/{linked_page}'
+            page_exists = http_get_request(url, self.main.cookies).status_code
             if page_exists in self.main.success_codes:
                 return linked_page
 
@@ -99,18 +105,34 @@ class Crawler:
 
         return return_links
 
+    def proxy_server(self):
+        # TODO: make config variable for port
+        info('Proxy server started on http://127.0.0.1:8080', prepend='  ')
+        info('Use browser to crawl target', prepend='  ')
+        server_address = ('127.0.0.1', 8080)
+
+        signal.signal(signal.SIGINT, self.stop_server)
+        self.httpd = HTTPServer(server_address, CrawlerProxy)
+        self.httpd.serve_forever()
+
+    def stop_server(self, sig, frame):
+        # TODO: return control to run_module
+        success('Stopping proxy server...')
+        self.httpd.server_close()
+
     def run_module(self):
         info('Crawling links...')
 
         # get found pages
         self.found_pages = self._load_scan_results()
 
+        self.proxy_server()
         # loop through all pages found so far
-        loop_pages = self.found_pages
-        for page in loop_pages:
-            for link in self._parse_links(page):
-                if not link in loop_pages:
-                    success(f'Found page: {link}', prepend='  ')
-                    loop_pages.append(link)
+        # loop_pages = self.found_pages
+        # for page in loop_pages:
+        #     for link in self._parse_links(page):
+        #         if not link in loop_pages:
+        #             success(f'Found page: {link}', prepend='  ')
+        #             loop_pages.append(link)
 
-        self._save_scan_results(loop_pages)
+        # self._save_scan_results(loop_pages)

@@ -4,9 +4,9 @@ from datetime import datetime
 from functools import partial
 from multiprocessing import Pool
 
-from utils import http_get_request
-from utils import success, warning, info
-from utils import db_get_wordlist, save_scan_results, db_table_exists, db_create_table
+from util_functions import http_get_request
+from util_functions import success, warning, info
+
 
 class DirectoryScanner:
     """ This module is used to scan a web application for exposed directories
@@ -26,17 +26,28 @@ class DirectoryScanner:
 
         self._create_db_table()
 
+    def generate_text(self):
+        # load in text to be trained
+        text_list = self.main.db.db_get_wordlist_generic('directory', 'word')
+
+        # generate a list of words based on training text
+        generated_list = self.main.text_generator.generate(text_list)
+
+        # save generated list to be run on next scan
+        # TODO: save generated text to a db table
+
+
     def _create_db_table(self):
         """ used to create database table needed to store results for this
             module. should be overwritten to meet this modules storage needs
         """
-        if not db_table_exists(self.info['db_table_name']):
+        if not self.main.db.db_table_exists(self.info['db_table_name']):
             sql_create_statement = (f'CREATE TABLE IF NOT EXISTS {self.info["db_table_name"]} ('
                                     f'id INTEGER PRIMARY KEY AUTOINCREMENT,'
                                     f'scan_id INTEGER NOT NULL,'
                                     f'directory TEXT,'
                                     f'UNIQUE(scan_id, directory));')
-            db_create_table(sql_create_statement)
+            self.main.db.db_create_table(sql_create_statement)
 
 
     def _load_scan_results(self):
@@ -52,7 +63,10 @@ class DirectoryScanner:
 
             @param results -        a list of directories found
         """
-        save_scan_results(self.main.id, self.info['db_table_name'], "directory", results)
+        self.main.db.save_scan_results(self.main.id,
+                                       self.info['db_table_name'],
+                                       "directory",
+                                       results)
 
     def _run_thread(self, word):
         """ makes a HTTP GET request to check if a directory exists. to be used
@@ -88,7 +102,7 @@ class DirectoryScanner:
 
         # load in the wordlist from database
         # word_list = db_get_wordlist('directory', 'general')
-        word_list = db_get_wordlist('dir_test', 'general')
+        word_list = self.main.db.db_get_wordlist('dir_test', 'general')
 
         # add an empty string so that the root directory is scanned
         word_list.append('')

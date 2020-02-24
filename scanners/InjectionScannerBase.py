@@ -5,10 +5,9 @@ from datetime import datetime
 from functools import partial
 from multiprocessing import Pool
 
-from utils import db_get_wordlist
-from utils import success, warning, info
-from utils import http_get_request, http_post_request
-from utils import load_scan_results, save_scan_results, db_table_exists, db_create_table, db_get_wordlist, db_get_wordlist_generic
+from util_functions import success, warning, info
+from util_functions import http_get_request, http_post_request
+
 
 class InjectionScannerBase:
     """ this is a base class used to provide common functionality to all
@@ -33,7 +32,9 @@ class InjectionScannerBase:
             in specific results needed for this module
         """
         # load directories from database, results are a list of tuples
-        inject_params = load_scan_results(self.main.id, 'method, action, parameter', 'parameters_discovered')
+        inject_params = self.main.db.load_scan_results(self.main.id,
+                                                       'method, action, parameter',
+                                                       'parameters_discovered')
         return inject_params
 
     def _save_scan_results(self, results):
@@ -64,9 +65,6 @@ class InjectionScannerBase:
         assert(hasattr(self, "re_search_strings"))
 
         search_strings = self.re_search_strings
-
-        #print(search_strings)
-        #print(page_text)
 
         if any([re.search(s, page_text) for s in search_strings]):
             if not (page, param) in self.injectable_params:

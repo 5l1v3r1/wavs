@@ -6,7 +6,8 @@
     "threads" : 8,
     "verbose" : true,
     "text_generator_epochs": 1,
-    "text_generator_temp": 0.7
+    "text_generator_temp": 0.7,
+    "proxy_port": 8080
   },
 
   "modules" : [

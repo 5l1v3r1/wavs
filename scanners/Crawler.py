@@ -4,11 +4,11 @@ import signal
 from datetime import datetime
 from multiprocessing import Pool
 from bs4 import BeautifulSoup
-from http.server import HTTPServer
 
 from util_functions import success, warning, info
 from util_functions import http_get_request
-from utils.CrawlerProxy import CrawlerProxy
+from http.server import HTTPServer
+from utils.InterceptingProxy import InterceptingProxy
 
 class Crawler:
     __wavs_mod__ = True
@@ -105,20 +105,19 @@ class Crawler:
 
         return return_links
 
-    def proxy_server(self):
-        # TODO: make config variable for port
-        info('Proxy server started on http://127.0.0.1:8080', prepend='  ')
-        info('Use browser to crawl target', prepend='  ')
-        server_address = ('127.0.0.1', 8080)
 
-        signal.signal(signal.SIGINT, self.stop_server)
-        self.httpd = HTTPServer(server_address, CrawlerProxy)
-        self.httpd.serve_forever()
+    def proxy_response_handle(self, resp, path):
+        if resp.status_code in self.main.success_codes:
+            if '?' in path:
+                path = path.split('?')[0]
 
-    def stop_server(self, sig, frame):
-        # TODO: return control to run_module
-        success('Stopping proxy server...')
-        self.httpd.server_close()
+            if '/' in path:
+                path = path.replace('/', '')
+
+            if path not in self.manual_found_pages:
+                self.manual_found_pages.append(path)
+                success(f'Found new page: {path}', prepend='    ')
+
 
     def run_module(self):
         info('Crawling links...')
@@ -126,13 +125,25 @@ class Crawler:
         # get found pages
         self.found_pages = self._load_scan_results()
 
-        self.proxy_server()
-        # loop through all pages found so far
-        # loop_pages = self.found_pages
-        # for page in loop_pages:
-        #     for link in self._parse_links(page):
-        #         if not link in loop_pages:
-        #             success(f'Found page: {link}', prepend='  ')
-        #             loop_pages.append(link)
+        if self.main.options['manual_crawl']:
+            self.manual_found_pages = self.found_pages
+            proxy_port = self.main.options['proxy_port']
 
-        # self._save_scan_results(loop_pages)
+            # TODO: make config variable for port
+            info(f'Proxy server started on http://127.0.0.1:{proxy_port}', prepend='  ')
+            info('Use browser to crawl target. CTRL+C to exit.', prepend='  ')
+
+            proxy = InterceptingProxy(self.main.host, proxy_port, self)
+            proxy.start()
+
+            self._save_scan_results(self.manual_found_pages)
+        else:
+            # loop through all pages found so far
+            loop_pages = self.found_pages
+            for page in loop_pages:
+                for link in self._parse_links(page):
+                    if not link in loop_pages:
+                        success(f'Found page: {link}', prepend='  ')
+                        loop_pages.append(link)
+
+            self._save_scan_results(loop_pages)

@@ -35,6 +35,7 @@ arg_parser.add_argument('--cookies', help='Cookies to be included in requests, <
 arg_parser.add_argument('--restrict_paths', default='', help='Paths which should not be visited, /restrict/path/1,/restrict/path/2')
 arg_parser.add_argument('--scan_type', default='default', help='The type of scan to run. Determines which modules run and in what order.')
 arg_parser.add_argument('--generator', default=False, help='Runs the attack string text generator')
+arg_parser.add_argument('--manual_crawl', default=False, help='Use a proxy to manually crawl the target')
 args = arg_parser.parse_args()
 
 # TODO: make sure that modules that depend on previous results handle the lack
@@ -79,10 +80,11 @@ class WebScanner():
         self.scan_types = []
 
         self.db = DBManager()
-        
+
         # save the scan in the database
         self.id = self.db.save_new_scan(self)
 
+        self.options['manual_crawl'] = arg_parse.manual_crawl
         self.load_config()
         self._banner()
 
@@ -155,6 +157,7 @@ Web Application Vulnerability Scanner by Ryan Ritchie
         self.options['threads'] = config_dict['options']['threads']
         self.options['verbose'] = config_dict['options']['verbose']
         self.options['text_gen_epochs'] = config_dict['options']['text_generator_epochs']
+        self.options['proxy_port'] = config_dict['options']['proxy_port']
 
 
     def _load_modules(self, modules_list):

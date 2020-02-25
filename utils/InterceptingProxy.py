@@ -1,9 +1,16 @@
 import requests
 import signal
+import pickle
+import os.path
 from util_functions import info, success, warning
 from http.server import HTTPServer, BaseHTTPRequestHandler
 
+gl_crawler_base = None
+
 class HTTPProxy(BaseHTTPRequestHandler):
+
+    def __init__(self, request, client_address, server):
+        BaseHTTPRequestHandler.__init__(self, request, client_address, server)
 
     # GET
     def do_GET(self, body=True):
@@ -30,8 +37,10 @@ class HTTPProxy(BaseHTTPRequestHandler):
 
 
     def proxy_response_handle(self, resp):
-        if resp.status_code in [200, 302]:
-            print(f'[+] Found: {self.path}')
+        global gl_crawler_base
+
+        # pass the response to crawler class to handle
+        gl_crawler_base.proxy_response_handle(resp, self.path)
 
         # Send response status code
         self.send_response(resp.status_code)
@@ -68,7 +77,12 @@ class HTTPProxy(BaseHTTPRequestHandler):
 
 
 class InterceptingProxy:
-    def __init__(self, host, port):
+    def __init__(self, host, port, crawler_base):
+        global gl_crawler_base
+        gl_crawler_base = crawler_base
+
+        self.host = host
+        self.port = port
         self.running = False
         self.proxy = HTTPServer((host, port), HTTPProxy)
 
@@ -76,9 +90,12 @@ class InterceptingProxy:
         self.running = True
         self.run()
 
-    def stop(self):
+    def stop(self, sig, frame):
         self.running = False
-        self.proxy.shutdown()
+        self.proxy.server_close()
+
+        # hides the ^C from the keyboard interrupt
+        print('\r', end='')
 
     def run(self):
         signal.signal(signal.SIGINT, self.stop)

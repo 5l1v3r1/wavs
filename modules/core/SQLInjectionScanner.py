@@ -7,7 +7,7 @@ from multiprocessing import Pool
 
 from util_functions import success, warning, info
 from util_functions import http_get_request, http_post_request
-from scanners.InjectionScannerBase import InjectionScannerBase
+from modules.core.InjectionScannerBase import InjectionScannerBase
 
 class SQLInjectionScanner(InjectionScannerBase):
     """ This module tests a web application for the SQL injection vulnerability,

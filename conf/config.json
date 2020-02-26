@@ -11,16 +11,16 @@
   },
 
   "modules" : [
-    { "name" : "Initial Scanner", "path" : "scanners/InitialScanner" },
-    { "name" : "Directory Scanner", "path" : "scanners/DirectoryScanner" },
-    { "name" : "File Scanner", "path" : "scanners/FileScanner" },
-    { "name" : "Site Crawler", "path" : "scanners/Crawler" },
-    { "name" : "HTML Parser", "path" : "scanners/HTMLParser" },
-    { "name" : "SQL Injection Scanner", "path" : "scanners/SQLInjectionScanner" },
-    { "name" : "Local File Inclusion", "path" : "scanners/LFI" },
-    { "name" : "Cross Site Scripting", "path" : "scanners/CrossSiteScripting" },
-    { "name" : "Cross Site Request Forgery", "path" : "scanners/CSRF" },
-    { "name" : "Information Disclosure", "path" : "scanners/InformationDisclosure" }
+    { "name" : "Initial Scanner", "path" : "modules/core/InitialScanner" },
+    { "name" : "Directory Scanner", "path" : "modules/core/DirectoryScanner" },
+    { "name" : "File Scanner", "path" : "modules/core/FileScanner" },
+    { "name" : "Site Crawler", "path" : "modules/core/Crawler" },
+    { "name" : "HTML Parser", "path" : "modules/core/HTMLParser" },
+    { "name" : "SQL Injection Scanner", "path" : "modules/core/SQLInjectionScanner" },
+    { "name" : "Local File Inclusion", "path" : "modules/core/LFI" },
+    { "name" : "Cross Site Scripting", "path" : "modules/core/CrossSiteScripting" },
+    { "name" : "Cross Site Request Forgery", "path" : "modules/core/CSRF" },
+    { "name" : "Information Disclosure", "path" : "modules/core/InformationDisclosure" }
   ],
 
   "scan types" :

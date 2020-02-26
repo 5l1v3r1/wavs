@@ -1,80 +1,108 @@
 #/usr/bin/python3
 
-# author:       Ryan Ritchie
-# student no:   17019225
-# email:        ryan2.ritchie@live.uwe.ac.uk
-# file:         wavs.py
+#################################################
+# author:       Ryan Ritchie                    #
+# student no:   17019225                        #
+# email:        ryan2.ritchie@live.uwe.ac.uk    #
+#################################################
 
-# core imports
+################
+# imports      #
+################
 import os
 import sys
 import json
 import requests
 import argparse
-import unittest
 
 from datetime import datetime
 from functools import partial
 from multiprocessing import Pool
 
-# my imports
+from utils.DBManager import DBManager
 from util_functions import load_module
 from util_functions import cookie_parse
 from util_functions import success, warning, info, banner_colour
-from utils.DBManager import DBManager
 
 
-# global constants
+################
+# globals      #
+################
 CONFIG_FILE_PATH = 'conf/config.json'
 
-# argument parsing
+
+########################
+# argument parsing     #
+########################
 arg_parser = argparse.ArgumentParser()
-arg_parser.add_argument('host', help='The url of the web application to be scanned')
-arg_parser.add_argument('--port', type=int, default=0, help='The port the web application is running on')
-arg_parser.add_argument('--cookies', help='Cookies to be included in requests, <cookie_name>=<cookie_value>,[...]')
-arg_parser.add_argument('--restrict_paths', default='', help='Paths which should not be visited, /restrict/path/1,/restrict/path/2')
-arg_parser.add_argument('--scan_type', default='default', help='The type of scan to run. Determines which modules run and in what order.')
-arg_parser.add_argument('--generator', default=False, help='Runs the attack string text generator')
-arg_parser.add_argument('--manual_crawl', default=False, help='Use a proxy to manually crawl the target')
+arg_parser.add_argument(
+    'host',
+    help='The url of the web application to be scanned, including protocol')
+
+arg_parser.add_argument(
+    '-p',
+    '--port',
+    type=int,
+    default=0,
+    help='The port the web application is running on')
+
+arg_parser.add_argument(
+    '-c',
+    '--cookies',
+    help='Cookies to include in requests, <cookie_name>=<cookie_value>,[...]')
+
+arg_parser.add_argument(
+    '-r',
+    '--restrict_paths',
+    default='',
+    help='Paths which should not be visited, /restrict/path/')
+
+arg_parser.add_argument(
+    '-s',
+    '--scan_type',
+    default='default',
+    help='Determines which modules run and in what order. From config')
+
+arg_parser.add_argument(
+    '-g',
+    '--generator',
+    default=False,
+    action='store_true',
+    help='Runs the attack string text generator')
+
+arg_parser.add_argument(
+    '-m',
+    '--manual_crawl',
+    default=False,
+    action='store_true',
+    help='Use a proxy to manually crawl the target')
+
+arg_parser.add_argument(
+    '--add_success_codes',
+    nargs='+',
+    type=int,
+    help='Add HTTP codes to consider a resource found. Space delimited list')
+
+arg_parser.add_argument(
+    '--remove_success_codes',
+    nargs='+',
+    type=int,
+    help='Remove HTTP codes to consider a resource found. Space delimited list')
+
 args = arg_parser.parse_args()
 
-# TODO: make sure that modules that depend on previous results handle the lack
-#       of those results graciously
 
+###############
+# classes     #
+###############
 class WebScanner():
+    """ TODO: provide docstring
+
+    """
     def __init__(self, arg_parse):
-        # check that protocol is supplied
-        if arg_parse.host[:4] != 'http':
-            warning('Please specify the protocol for host, either http or https')
-            exit()
+        self.load_config()
+        self.parse_cmd_line_args(arg_parse)
 
-        # split the host into protocol and ip/hostname
-        self.proto, self.host = arg_parse.host.split('://')
-        self.proto += '://'
-
-        # if no port is specified then set port based on protocol
-        if arg_parse.port == 0:
-            if self.proto == 'http://':
-                self.port = 80
-            elif self.proto == 'https://':
-                self.port = 443
-        else:
-            self.port = arg_parse.port
-
-        self.cookies = cookie_parse(arg_parse.cookies)
-        self.scan_type = arg_parse.scan_type
-
-        if arg_parse.restrict_paths:
-            if ',' in arg_parse.restrict_paths:
-                self.restrict_paths = arg_parse.restrict_paths.split(',')
-            else:
-                self.restrict_paths = [arg_parse.restrict_paths]
-        else:
-            self.restrict_paths = None
-
-        # TODO: add way to change success codes
-        self.success_codes = [200, 201, 202, 203, 204, 301, 302, 303, 304]
-        self.file_extensions = ['.html', '.php']
         self.options = {}
         self.modules = []
         self.scan_types = []
@@ -85,7 +113,7 @@ class WebScanner():
         self.id = self.db.save_new_scan(self)
 
         self.options['manual_crawl'] = arg_parse.manual_crawl
-        self.load_config()
+
         self._banner()
 
         if arg_parse.generator:
@@ -93,21 +121,80 @@ class WebScanner():
         else:
             self.run_modules()
 
+    def parse_cmd_line_args(self, arg_parse):
+        """ parses the command line arguments passed into the program, and
+            makes sure the arguments passed are valid.
+
+            @param:     arg_parse   - argparser object containing cmd line args
+            @returns:   None
+        """
+
+        # a protocol needs to be supplied in host and needs to be
+        # either http or https, otherwise the program should exit
+        if arg_parse.host[:4] != 'http':
+            warning('Please specify the protocol for host, http or https')
+            exit()
+
+        # split the host into protocol and ip/hostname
+        self.proto, self.host = arg_parse.host.split('://')
+        self.proto += '://'
+
+        # if no port is specified then set port based on protocol,
+        # these are the default ports for the http and https protocols
+        if arg_parse.port == 0:
+            if self.proto == 'http://':
+                self.port = 80
+            elif self.proto == 'https://':
+                self.port = 443
+        else:
+            self.port = arg_parse.port
+
+        # if cookies are supplied, parses the cookies into a dictionary which
+        # is required by the requests module
+        self.cookies = cookie_parse(arg_parse.cookies)
+
+        # store the scan type, must be a value listed in the config.json file
+        # under 'scan_types', if not specified by command line argument the
+        # 'default' scan type is stored
+        self.scan_type = arg_parse.scan_type
+
+        # parse any restricted paths passed in from command line
+        # these paths on the target application that should not be crawled
+        if arg_parse.restrict_paths:
+            # if a list has been passed, split the list
+            if ',' in arg_parse.restrict_paths:
+                self.restrict_paths = arg_parse.restrict_paths.split(',')
+            else:
+                # otherwise make the single path into a list
+                self.restrict_paths = [arg_parse.restrict_paths]
+        else:
+            self.restrict_paths = None
+
+        # add success codes passed in from command line
+        if arg_parse.add_success_codes:
+            self.success_codes.extend([
+                code for code
+                in arg_parse.add_success_codes
+                if code not in self.success_codes])
+
+        # remove success codes passed in from command line
+        if arg_parse.remove_success_codes:
+            self.success_codes = [
+                code for code
+                in self.success_codes
+                if code not in arg_parse.remove_success_codes]
+
     def get_host_url_base(self):
         return f'{self.proto}{self.host}:{self.port}'
 
     def _banner(self):
-        banner = """
-`7MMF'     A     `7MF' db `7MMF'   `7MF'.M'''bgd
-  `MA     ,MA     ,V  ;MM:  `MA     ,V ,MI    "Y
-   VM:   ,VVM:   ,V  ,V^MM.  VM:   ,V  `MMb.
-    MM.  M' MM.  M' ,M  `MM   MM.  M'    `YMMNq.
-    `MM A'  `MM A'  AbmmmqMA  `MM A'   .     `MM
-     :MM;    :MM;  A'     VML  :MM;    Mb     dM
-      VF      VF .AMA.   .AMMA. VF     P"Ybmmd"
+        banner = ''
+        try:
+            with open('etc/banner', 'r') as f:
+                banner = f.read()
+        except:
+            banner = 'Web Application Vulnerability Scanner by Ryan Ritchie'
 
-Web Application Vulnerability Scanner by Ryan Ritchie
-        """
         if self.options['display_banner']:
             banner_colour(banner)
 
@@ -176,7 +263,9 @@ Web Application Vulnerability Scanner by Ryan Ritchie
             assert('/' in mod)
 
             # split the string into package name, and class name
-            package_name, class_name = mod.split('/')
+            module_path_list = mod.split('/')
+            class_name = module_path_list[-1:][0]
+            package_name = '.'.join(module_path_list[:-1])
 
             temp_module = load_module(package_name, class_name)
             if not temp_module:
@@ -203,10 +292,7 @@ Web Application Vulnerability Scanner by Ryan Ritchie
         for module in modules_to_run:
             module.run_module()
 
-class Test(unittest.TestCase):
-    def test__load_config():
-        test_scan = WebScanner(args)
-        print(test_scan.load_config())
+
 
 if __name__ == '__main__':
     wscan = WebScanner(args)

@@ -8,6 +8,8 @@ from multiprocessing import Pool
 from util_functions import success, warning, info
 from util_functions import http_get_request, http_post_request
 
+# TODO: make sure that modules that depend on previous results handle the lack
+#       of those results graciously
 
 class InjectionScannerBase:
     """ this is a base class used to provide common functionality to all

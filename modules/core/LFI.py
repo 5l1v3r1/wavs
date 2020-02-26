@@ -6,7 +6,7 @@ from multiprocessing import Pool
 
 from util_functions import http_get_request
 from util_functions import success, warning, info
-from scanners.InjectionScannerBase import InjectionScannerBase
+from modules.core.InjectionScannerBase import InjectionScannerBase
 
 class LFI(InjectionScannerBase):
     """ This module is used to scan for local file inclusions, it does this by

@@ -1,5 +1,3 @@
-#/usr/bin/python3
-
 #################################################
 # author:       Ryan Ritchie                    #
 # student no:   17019225                        #
@@ -9,26 +7,13 @@
 ################
 # imports      #
 ################
-import os
-import sys
-import json
-import requests
 import argparse
 
-from datetime import datetime
-from functools import partial
-from multiprocessing import Pool
-
+from conf import config
 from utils.DBManager import DBManager
 from util_functions import load_module
 from util_functions import cookie_parse
-from util_functions import success, warning, info, banner_colour
-
-
-################
-# globals      #
-################
-CONFIG_FILE_PATH = 'conf/config.json'
+from util_functions import warning, banner_colour
 
 
 ########################
@@ -81,13 +66,13 @@ arg_parser.add_argument(
     '--add_success_codes',
     nargs='+',
     type=int,
-    help='Add HTTP codes to consider a resource found. Space delimited list')
+    help='Add HTTP codes for a found resources. Space delimited list')
 
 arg_parser.add_argument(
     '--remove_success_codes',
     nargs='+',
     type=int,
-    help='Remove HTTP codes to consider a resource found. Space delimited list')
+    help='Remove HTTP codes for found resources. Space delimited list')
 
 args = arg_parser.parse_args()
 
@@ -96,24 +81,23 @@ args = arg_parser.parse_args()
 # classes     #
 ###############
 class WebScanner():
-    """ TODO: provide docstring
+    """ This class provides the 'framework' for the scanning program, it loads
+        in configuration options, parses command line arguments, loads in the
+        scanning modules and finally runs through all the loaded modules and
+        runs them.
 
+        @param:     arg_parse - this is an object from the argparse module
+                                which contains all the command line arguments
     """
-    def __init__(self, arg_parse):
-        self.load_config()
-        self.parse_cmd_line_args(arg_parse)
 
+    def __init__(self, arg_parse):
         self.options = {}
         self.modules = []
         self.scan_types = []
 
-        self.db = DBManager()
-
-        # save the scan in the database
-        self.id = self.db.save_new_scan(self)
-
-        self.options['manual_crawl'] = arg_parse.manual_crawl
-
+        self._parse_cmd_line_args(arg_parse)
+        self._init_database()
+        self._load_config()
         self._banner()
 
         if arg_parse.generator:
@@ -121,7 +105,49 @@ class WebScanner():
         else:
             self.run_modules()
 
-    def parse_cmd_line_args(self, arg_parse):
+    def _load_config(self):
+        """ loads in the configuration data contained in conf/config.py then
+            saves the various configuration variables into named attributes
+            to be used during scanning
+
+            @params:    None
+            @returns:   None
+        """
+        # config is loaded in from config.py which contains a dict which has
+        # all the config variables saved in it
+        config_dict = config.config
+
+        # this will load in a list of dictionaries referring to python modules
+        # that need to be loaded and run
+        dict_modules_to_load = config_dict['modules']
+
+        # makes a list of the module path from the dicts
+        modules_to_load = [d['path'] for d in dict_modules_to_load]
+
+        # loads the modules in and initialises the objects, saved as a list
+        self.modules = self._load_modules(modules_to_load)
+
+        # load in the scan types, these are named lists of modules to run
+        self.scan_types = config_dict['scan types']
+
+        # load in the configuration variables from the dict and save them
+        # into named attributes to be used in the scanning modules
+        self.success_codes = \
+            config_dict['options']['success_codes']
+        self.file_extensions = \
+            config_dict['options']['file_extensions']
+        self.options['display_banner'] = \
+            config_dict['options']['display_banner']
+        self.options['threads'] = \
+            config_dict['options']['threads']
+        self.options['verbose'] = \
+            config_dict['options']['verbose']
+        self.options['text_gen_epochs'] = \
+            config_dict['options']['text_generator_epochs']
+        self.options['proxy_port'] = \
+            config_dict['options']['proxy_port']
+
+    def _parse_cmd_line_args(self, arg_parse):
         """ parses the command line arguments passed into the program, and
             makes sure the arguments passed are valid.
 
@@ -184,74 +210,38 @@ class WebScanner():
                 in self.success_codes
                 if code not in arg_parse.remove_success_codes]
 
+        # this option controls whether the 'Crawler' module should crawl the
+        # target automatically, or whether it should use a proxy to let the
+        # user crawl the target manually through a web browser
+        self.options['manual_crawl'] = arg_parse.manual_crawl
+
+    def _init_database(self):
+        self.db = DBManager()
+
+        # save the scan in the database
+        self.id = self.db.save_new_scan(self)
+
     def get_host_url_base(self):
+        """ constructs the url to access the target
+
+            @params:             None
+            @returns (string):   a url to access the target web application
+        """
         return f'{self.proto}{self.host}:{self.port}'
 
     def _banner(self):
-        banner = ''
-        try:
-            with open('etc/banner', 'r') as f:
-                banner = f.read()
-        except:
-            banner = 'Web Application Vulnerability Scanner by Ryan Ritchie'
+        """ displays the program banner on startup
 
+            @params:        None
+            @returns:       None
+        """
         if self.options['display_banner']:
-            banner_colour(banner)
-
-    def load_config(self):
-        # the config file is needed for the program to run, so if it cant
-        # be found the program will warn the user and exit
-        if not os.path.exists(CONFIG_FILE_PATH):
-            warning(f'Config file cannot be found at {CONFIG_FILE_PATH}')
-            exit()
-
-        # open the config file and read in the data
-        try:
-            with open(CONFIG_FILE_PATH, 'r') as f:
-                data = f.read()
-        except OSError:
-            warning(f'Could not read from config file {CONFIG_FILE_PATH}')
-            exit()
-
-        # parse the JSON data to get a python dictionary
-        try:
-            config_dict = json.loads(data)
-        except json.decoder.JSONDecodeError:
-            warning(f'Config file at {CONFIG_FILE_PATH} is not valid JSON')
-            exit()
-
-        ## first load in the modules
-
-        # this will load in a list of dictionaries referring to python modules
-        # that need to be loaded and run
-        dict_modules_to_load = config_dict['modules']
-
-        # makes a list of the module path from the dicts
-        modules_to_load = [d['path'] for d in dict_modules_to_load]
-
-        # loads the modules in and initialises the objects, saved as a list
-        self.modules = self._load_modules(modules_to_load)
-
-        ## now load in the scan types
-
-        self.scan_types = config_dict['scan types']
-
-        ## now load in the options
-
-        self.success_codes = config_dict['options']['success_codes']
-        self.file_extensions = config_dict['options']['file_extensions']
-        self.options['display_banner'] = config_dict['options']['display_banner']
-        self.options['threads'] = config_dict['options']['threads']
-        self.options['verbose'] = config_dict['options']['verbose']
-        self.options['text_gen_epochs'] = config_dict['options']['text_generator_epochs']
-        self.options['proxy_port'] = config_dict['options']['proxy_port']
-
+            banner_colour(config.banner)
 
     def _load_modules(self, modules_list):
         """ takes a list of module strings and loads them
 
-            @param:     modules_list (list)     - a list of strings of modules to
-                                                  load
+            @param:     modules_list (list)     - modules to load
             @returns:   a list of dictionaries containing loaded modules
         """
         # temporary list to hold loaded modules
@@ -259,39 +249,65 @@ class WebScanner():
 
         # loop through each module string in the list
         for mod in modules_list:
-            # TODO: remove this before production
-            assert('/' in mod)
 
             # split the string into package name, and class name
             module_path_list = mod.split('/')
             class_name = module_path_list[-1:][0]
             package_name = '.'.join(module_path_list[:-1])
 
+            # load the module
             temp_module = load_module(package_name, class_name)
+
+            # if the module could not be found, exit
             if not temp_module:
-                warning(f"Could not load the module at {mod}. Check the config file at {CONFIG_FILE_PATH}")
+                warning(f"Could not load the module at {mod}.")
                 exit()
 
+            # instantiate the loaded module, passing in the Webscanner instance
             temp_module = temp_module(self)
+
+            # save the module instance by its name in a dict
             modules_loaded[temp_module.info["name"]] = temp_module
 
+        # return all the instances of loaded modules
         return modules_loaded
 
     def run_text_generation(self):
+        """ runs through each loaded module and calls the modules text
+            generation method. the generated text is saved in a database
+            table. the next time a scan is run, the generated text is used
+            as search text for the corresponding module. if the generated
+            text is successful in finding something, it will be saved in
+            the main search text database to be used in future scans.
+
+            @params:        None
+            @returns:       None
+        """
         for module in self.modules:
             module.generate_text()
 
     def run_modules(self):
-        if not self.scan_type in self.scan_types:
-            warning(f'Could not find scan type {self.scan_type} in config file')
+        """ runs through each module in the selected scan type and calls its
+            run method, which runs the scan for that specific module
 
+            @params:        None
+            @returns:       None
+        """
+
+        # check that the scan type passed in by command line is defined
+        # in the config file, if not exit
+        if self.scan_type not in self.scan_types:
+            warning(f'Scan type {self.scan_type} not in config file')
+            exit()
+
+        # build a list of the modules in the scan type
         modules_to_run = []
         for module_name in self.scan_types[self.scan_type]:
             modules_to_run.append(self.modules[module_name])
 
+        # loop through the modules in the scan type and call the run method
         for module in modules_to_run:
             module.run_module()
-
 
 
 if __name__ == '__main__':

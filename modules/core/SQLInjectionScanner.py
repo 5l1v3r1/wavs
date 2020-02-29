@@ -1,18 +1,12 @@
-import re
-import requests
-
-from datetime import datetime
-from functools import partial
+from util_functions import info
 from multiprocessing import Pool
-
-from util_functions import success, warning, info
-from util_functions import http_get_request, http_post_request
 from modules.core.InjectionScannerBase import InjectionScannerBase
 
+
 class SQLInjectionScanner(InjectionScannerBase):
-    """ This module tests a web application for the SQL injection vulnerability,
-        it does this by injecting SQL 'attack' strings into parameters and checking
-        the resulting webpage for SQL error messages.
+    """ This module tests a web application for the SQL injection vulnerability
+        it does this by injecting SQL 'attack' strings into parameters and
+        checking the resulting webpage for SQL error messages.
 
         @depends on: HTMLParser
             - this module requires the HTMLParser module to be run before it
@@ -40,14 +34,15 @@ class SQLInjectionScanner(InjectionScannerBase):
             module. should be overwritten to meet this modules storage needs
         """
         if not self.main.db.db_table_exists(self.info['db_table_name']):
-            sql_create_statement = (f'CREATE TABLE IF NOT EXISTS {self.info["db_table_name"]}('
-                                    f'id INTEGER PRIMARY KEY AUTOINCREMENT,'
-                                    f'scan_id INTEGER NOT NULL,'
-                                    f'page TEXT NOT NULL,'
-                                    f'sql_injection_param TEXT NOT NULL,'
-                                    f'UNIQUE(scan_id, page, sql_injection_param));')
+            sql_create_statement = ('CREATE TABLE IF NOT EXISTS '
+                                    f'{self.info["db_table_name"]}('
+                                    'id INTEGER PRIMARY KEY AUTOINCREMENT,'
+                                    'scan_id INTEGER NOT NULL,'
+                                    'page TEXT NOT NULL,'
+                                    'sql_injection_param TEXT NOT NULL,'
+                                    'UNIQUE(scan_id, page, '
+                                    'sql_injection_param));')
             self.main.db.db_create_table(sql_create_statement)
-
 
     def _save_scan_results(self, results):
         full_list = []
@@ -59,15 +54,15 @@ class SQLInjectionScanner(InjectionScannerBase):
                                        "page, sql_injection_param",
                                        full_list)
 
-
     def run_module(self):
         info('Searching for SQL injections...')
 
         # get the injectable params
         params = self._load_scan_results()
         self.attack_strings = self.main.db.db_get_wordlist('sqli', 'error')
-        self.re_search_strings = self.main.db.db_get_wordlist_generic('sql_errors',
-                                                                      'message')
+        self.re_search_strings = self.main.db.\
+            db_get_wordlist_generic('sql_errors',
+                                    'message')
         self.re_search_strings = [s[0] for s in self.re_search_strings]
 
         # pass them off to threads

@@ -1,15 +1,11 @@
 import re
-import requests
 
-from datetime import datetime
-from functools import partial
-from multiprocessing import Pool
-
-from util_functions import success, warning, info
+from util_functions import success
 from util_functions import http_get_request, http_post_request
 
 # TODO: make sure that modules that depend on previous results handle the lack
 #       of those results graciously
+
 
 class InjectionScannerBase:
     """ this is a base class used to provide common functionality to all
@@ -28,15 +24,15 @@ class InjectionScannerBase:
         # override this
         pass
 
-
     def _load_scan_results(self):
         """ loads in results from previous scans, should be overwritten to load
             in specific results needed for this module
         """
         # load directories from database, results are a list of tuples
-        inject_params = self.main.db.load_scan_results(self.main.id,
-                                                       'method, action, parameter',
-                                                       'parameters_discovered')
+        inject_params = self.main.db.\
+            load_scan_results(self.main.id,
+                              'method, action, parameter',
+                              'parameters_discovered')
         return inject_params
 
     def _save_scan_results(self, results):
@@ -71,13 +67,13 @@ class InjectionScannerBase:
         if any([re.search(s, page_text) for s in search_strings]):
             if not (page, param) in self.injectable_params:
                 if self.main.options['verbose']:
-                    success(f'Vulnerable parameter: {page}/{param}', prepend='  ')
+                    success(f'Vulnerable parameter: {page}/{param}',
+                            prepend='  ')
                 self.injectable_params.append((page, param))
 
             return True
 
         return False
-
 
     def _run_thread(self, param):
         method = param[0]
@@ -114,7 +110,6 @@ class InjectionScannerBase:
                         break
 
         return self.injectable_params
-
 
     def run_module(self):
         """

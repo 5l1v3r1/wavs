@@ -1,9 +1,9 @@
 from multiprocessing import Pool
 from bs4 import BeautifulSoup
 
-from datetime import datetime
-from util_functions import success, warning, info
+from util_functions import success, info
 from util_functions import http_get_request
+
 
 class HTMLParser:
     __wavs_mod__ = True
@@ -25,15 +25,16 @@ class HTMLParser:
             module. should be overwritten to meet this modules storage needs
         """
         if not self.main.db.db_table_exists(self.info['db_table_name']):
-            sql_create_statement = (f'CREATE TABLE IF NOT EXISTS {self.info["db_table_name"]}('
-                                    f'id INTEGER PRIMARY KEY AUTOINCREMENT,'
-                                    f'scan_id INTEGER NOT NULL,'
-                                    f'method TEXT NOT NULL,'
-                                    f'action TEXT NOT NULL,'
-                                    f'parameter TEXT NOT NULL,'
-                                    f'UNIQUE(scan_id, method, action, parameter));')
+            sql_create_statement = ('CREATE TABLE IF NOT EXISTS '
+                                    f'{self.info["db_table_name"]}('
+                                    'id INTEGER PRIMARY KEY AUTOINCREMENT,'
+                                    'scan_id INTEGER NOT NULL,'
+                                    'method TEXT NOT NULL,'
+                                    'action TEXT NOT NULL,'
+                                    'parameter TEXT NOT NULL,'
+                                    'UNIQUE(scan_id, method, '
+                                    'action, parameter));')
             self.main.db.db_create_table(sql_create_statement)
-
 
     def _load_scan_results(self):
         """ loads in results from previous scans, should be overwritten to load
@@ -50,7 +51,9 @@ class HTMLParser:
     def _save_scan_results(self, results):
         full_list = []
         for r in results:
-            full_list.append((r['method'], r['action'], ', '.join(r['params'])))
+            full_list.append((r['method'],
+                              r['action'],
+                              ', '.join(r['params'])))
 
         self.main.db.save_scan_results(self.main.id,
                                        self.info['db_table_name'],
@@ -68,7 +71,6 @@ class HTMLParser:
 
         return {'method': 'GET', 'action': action, 'params': stored_params}
 
-
     def _extract_links(self, html):
         """ extract anchor links out of html data
 
@@ -85,7 +87,7 @@ class HTMLParser:
                 continue
 
             # we only want links with parameters in
-            if not '?' in href:
+            if '?' not in href:
                 continue
 
             # we assume if it is an absolute path it is external and ignore it
@@ -106,7 +108,6 @@ class HTMLParser:
         '''
 
         action = form.get('action')
-        method = form.get('method')
 
         if not action:
             return None
@@ -115,7 +116,6 @@ class HTMLParser:
             return None
 
         return field.get('name')
-
 
     def _extract_forms(self, html):
         """ extract params from html forms
@@ -134,7 +134,9 @@ class HTMLParser:
             for field in form.find_all('input'):
                 form_params.append(self._extract_form_params(form, field))
 
-        return {'method': form.get('method'), 'action': form.get('action'), 'params': form_params}
+        return {'method': form.get('method'),
+                'action': form.get('action'),
+                'params': form_params}
 
     def _run_thread(self, webpage):
         """ runs in a thread. parses a webpage's html for form and links, then
@@ -162,9 +164,6 @@ class HTMLParser:
             takes any found webpages and uses threads to extract params from
             the html.
         """
-        start_time = datetime.now()
-        # info('Starting param parsing at {}'.format(datetime.strftime(start_time,
-        #                                             '%d/%b/%Y %H:%M:%S')))
         info('Parsing HTML...')
 
         # get the list of found pages
@@ -189,9 +188,7 @@ class HTMLParser:
 
         if self.main.options['verbose']:
             for params in final:
-                success(f'Found params: {params["action"]}/{" ".join(params["params"])}', prepend='  ')
+                success(f'Found params: {params["action"]}/'
+                        f'{" ".join(params["params"])}', prepend='  ')
 
         self._save_scan_results(final)
-
-        end_time = datetime.now()
-        #info('Param parsing completed. Elapsed: {}'.format(end_time - start_time))

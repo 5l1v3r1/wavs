@@ -1,27 +1,25 @@
-#/usr/bin/python3
+#################################################
+# author:       Ryan Ritchie                    #
+# student no:   17019225                        #
+# email:        ryan2.ritchie@live.uwe.ac.uk    #
+#################################################
 
-# author:       Ryan Ritchie
-# student no:   17019225
-# email:        ryan2.ritchie@live.uwe.ac.uk
-# file:         utils.py
 
 import importlib
-import inspect
 import requests
 import requests.exceptions
 import unittest
 
-from os import path
-
 # aesthetics imports
 try:
     import colorama
-except:
-    print('Required modules not installed. use pip install -r requirements.txt')
+except ModuleNotFoundError:
+    print('Required modules not found. use pip install -r requirements.txt')
     exit(1)
 
-from colorama import Fore, Back
+from colorama import Fore
 colorama.init(autoreset=True)
+
 
 def load_module(package_name, class_name):
     try:
@@ -46,6 +44,7 @@ def load_module(package_name, class_name):
 #                                                                             #
 ###############################################################################
 
+
 def http_get_request(url, cookies):
     """
 
@@ -61,15 +60,15 @@ def http_get_request(url, cookies):
 
     return r
 
+
 def http_post_request(url, post_params, cookies):
     """
 
         @param url (str) -              the URL to make the request to
-        @param post_params (dict) -     the post parameters to include in the request
+        @param post_params (dict) -     the post parameters to include
         @param cookies (dict) -         the cookies to send with the request
     """
     try:
-        post_data = {}
         r = requests.post(url, data=post_params, cookies=cookies)
 
     except (requests.exceptions.ConnectionError, requests.exceptions.Timeout):
@@ -77,6 +76,7 @@ def http_post_request(url, post_params, cookies):
         return 1
 
     return r
+
 
 def cookie_parse(cookie_string):
     if not cookie_string:
@@ -97,8 +97,10 @@ def cookie_parse(cookie_string):
 #                                                                             #
 ###############################################################################
 
+
 def banner_colour(banner):
     print(Fore.CYAN + banner)
+
 
 def _print_status(message, type, prepend):
     assert(type in ['success', 'warning', 'info'])
@@ -123,11 +125,14 @@ def _print_status(message, type, prepend):
     if VERBOSITY or type == 'warning':
         print(colour + f'{prepend}[{status_code}] {message}\n', end='')
 
+
 def success(message, prepend=''):
     _print_status(message, 'success', prepend)
 
+
 def warning(message, prepend=''):
     _print_status(message, 'warning', prepend)
+
 
 def info(message, prepend=''):
     _print_status(message, 'info', prepend)
@@ -139,27 +144,6 @@ class Test(unittest.TestCase):
         cookies = cookie_parse(c_string)
         self.assertEqual(cookies['testcookie'], '1')
         self.assertEqual(cookies['PHPSESSID'], 'ff7p62chjhlfi69o71nqk5vqd4')
-
-    def test_save_new_scan(self):
-        class FakeScanObject:
-            def __init__(self):
-                self.host = '127.0.0.1'
-                self.port = 80
-
-        fake_scan_object = FakeScanObject()
-        #id = save_new_scan(fake_scan_object)
-        #self.assertIsInstance(id, int)
-
-    def test_save_scan_results(self):
-        save_scan_results(1, 'test', 'method, action, params', [('GET', 'index.php', 'username, password, submit'), ('POST', 'contact.php', 'name', 'email')])
-        pass
-
-    def test_load_scan_results(self):
-        print(load_scan_results(1, 'directories_found', 'directories_found'))
-
-
-    def test_db_table_exists(self):
-        self.assertTrue(db_table_exists("directories_found"))
 
 
 if __name__ == '__main__':

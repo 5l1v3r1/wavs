@@ -1,14 +1,9 @@
-import requests
-import signal
-
-from datetime import datetime
-from multiprocessing import Pool
 from bs4 import BeautifulSoup
 
-from util_functions import success, warning, info
+from util_functions import success, info
 from util_functions import http_get_request
-from http.server import HTTPServer
 from utils.InterceptingProxy import InterceptingProxy
+
 
 class Crawler:
     __wavs_mod__ = True
@@ -30,13 +25,13 @@ class Crawler:
             module. should be overwritten to meet this modules storage needs
         """
         if not self.main.db.db_table_exists(self.info['db_table_name']):
-            sql_create_statement = (f'CREATE TABLE IF NOT EXISTS {self.info["db_table_name"]}('
+            sql_create_statement = (f'CREATE TABLE IF NOT EXISTS '
+                                    f'{self.info["db_table_name"]}('
                                     f'id INTEGER PRIMARY KEY AUTOINCREMENT,'
                                     f'scan_id INTEGER NOT NULL,'
                                     f'file TEXT,'
                                     f'UNIQUE(scan_id, file));')
             self.db_manager.db_create_table(sql_create_statement)
-
 
     def _load_scan_results(self):
         """ loads in results from previous scans, should be overwritten to load
@@ -105,7 +100,6 @@ class Crawler:
 
         return return_links
 
-
     def proxy_response_handle(self, resp, path):
         if resp.status_code in self.main.success_codes:
             if '?' in path:
@@ -118,7 +112,6 @@ class Crawler:
                 self.manual_found_pages.append(path)
                 success(f'Found new page: {path}', prepend='    ')
 
-
     def run_module(self):
         info('Crawling links...')
 
@@ -130,8 +123,10 @@ class Crawler:
             proxy_port = self.main.options['proxy_port']
 
             # TODO: make config variable for port
-            info(f'Proxy server started on http://127.0.0.1:{proxy_port}', prepend='  ')
-            info('Use browser to crawl target. CTRL+C to exit.', prepend='  ')
+            info(f'Proxy server started on http://127.0.0.1:{proxy_port}',
+                 prepend='  ')
+            info('Use browser to crawl target. CTRL+C to exit.',
+                 prepend='  ')
 
             proxy = InterceptingProxy(self.main.host, proxy_port, self)
             proxy.start()
@@ -142,7 +137,7 @@ class Crawler:
             loop_pages = self.found_pages
             for page in loop_pages:
                 for link in self._parse_links(page):
-                    if not link in loop_pages:
+                    if link not in loop_pages:
                         success(f'Found page: {link}', prepend='  ')
                         loop_pages.append(link)
 

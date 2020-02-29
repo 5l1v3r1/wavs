@@ -1,13 +1,14 @@
 import sqlite3
 from sqlite3 import Error
 from datetime import datetime
+# TODO: use prepared statements for SQL
+
 
 class DBManager:
     def __init__(self):
         self.db_paths = {}
         self.db_paths['attack_strings'] = 'database/main.db'
         self.db_paths['scan_results'] = 'database/scans.db'
-
 
     def db_get_connection(self, database_file):
         """ create the database connection to the sqlite database
@@ -24,18 +25,16 @@ class DBManager:
 
         return connection
 
-
     def db_create_table(self, sql_statement):
         connection = self.db_get_connection(self.db_paths['scan_results'])
         self.db_execute_statement(connection, sql_statement)
 
-
     def db_execute_statement(self, connection, sql_statement):
-        """ execute a sql statement on the database represented by the connection
-            object
+        """ execute a sql statement on the database represented by the
+            connection object
 
             :param connection:      a sqlite3 database connection
-            :param sql_statement:   the sql statement to be executed on the database
+            :param sql_statement:   sql to be executed on the database
             :return:
         """
 
@@ -47,7 +46,6 @@ class DBManager:
             print('sql error')
             print(e)
 
-
     def _db_get_data(self, connection, sql_select_statement):
         try:
             cursor = connection.cursor()
@@ -57,13 +55,15 @@ class DBManager:
         except Error as e:
             print(e)
 
-
     def db_table_exists(self, table_name):
         connection = self.db_get_connection(self.db_paths['scan_results'])
 
         try:
             cursor = connection.cursor()
-            sql_check_tbl_exists = f'SELECT name FROM sqlite_master WHERE type="table" and name="{table_name}"'
+            sql_check_tbl_exists = (f'SELECT name '
+                                    f'FROM sqlite_master '
+                                    f'WHERE type="table" '
+                                    f'and name="{table_name}"')
             cursor.execute(sql_check_tbl_exists)
             if len(cursor.fetchall()) > 0:
                 return True
@@ -75,13 +75,15 @@ class DBManager:
     def db_get_wordlist(self, wordlist_name, group_name):
         """ load a wordlist from the database
 
-            :param wordlist_name:   the name of the wordlist, also the table name
+            :param wordlist_name:   the name of the wordlist, and table name
             :param group_name:      the name of a group of words to be selected
             :return (list):
         """
         c = self.db_get_connection(self.db_paths['attack_strings'])
 
-        sql_get_wordlist = "SELECT word FROM '{}' WHERE type = '{}'".format(wordlist_name, group_name)
+        sql_get_wordlist = (f'SELECT word '
+                            f'FROM "{wordlist_name}" '
+                            f'WHERE type = "{group_name}"')
 
         result = self._db_get_data(c, sql_get_wordlist)
         wordlist = [row[0] for row in result]
@@ -97,16 +99,18 @@ class DBManager:
         c = self.db_get_connection(self.db_paths['attack_strings'])
 
         if not filter:
-            sql_get_wordlist = f"SELECT {column_names} FROM '{table_name}'"
+            sql_get_wordlist = f'SELECT {column_names} FROM "{table_name}"'
         else:
-            sql_get_wordlist = f"SELECT {column_names} FROM '{table_name}' WHERE {filter[0]} = '{filter[1]}'"
+            sql_get_wordlist = (f'SELECT {column_names} '
+                                f'FROM "{table_name}" '
+                                f'WHERE {filter[0]} = "{filter[1]}"')
 
         result = self._db_get_data(c, sql_get_wordlist)
 
         return result
 
-
-    def db_wordlist_add_words(self, wordfile, table_name, words, group='general'):
+    def db_wordlist_add_words(self, wordfile, table_name, words,
+                              group='general'):
         """ insert words into a wordlist table
 
             :param wordlist:    the wordlist to add the words to
@@ -124,11 +128,11 @@ class DBManager:
                 words.append(line)
 
         for word in words:
-            sql_add_words = f"INSERT INTO {table_name}(injection_string, type) VALUES('{word}', '{group}');"
-            self.db_execute_statement(c, sql_add_words)
+            sql_add = (f'INSERT INTO {table_name}(injection_string, type) '
+                       f'VALUES("{word}", "{group}");')
+            self.db_execute_statement(c, sql_add)
 
         c.close()
-
 
     def save_new_scan(self, scan_object):
         conn = self.db_get_connection(self.db_paths['scan_results'])
@@ -136,8 +140,8 @@ class DBManager:
         scan_start = str(datetime.now())
         sql_new_scan = (f"INSERT INTO scans(timestamp, host, port)"
                         f" VALUES('{scan_start}',"
-                               f"'{scan_object.host}',"
-                               f"'{scan_object.port}')")
+                        f"'{scan_object.host}',"
+                        f"'{scan_object.port}')")
 
         self.db_execute_statement(conn, sql_new_scan)
 
@@ -146,7 +150,6 @@ class DBManager:
 
         # result is a list containing a tuple
         return result[0][0]
-
 
     def save_scan_results(self, scan_id, table_name, table_columns, results):
         conn = self.db_get_connection(self.db_paths['scan_results'])
@@ -162,17 +165,18 @@ class DBManager:
                 val_string = f'"{row}"'
 
             # construct the sql statement
-            sql_save_results = f'INSERT OR IGNORE INTO {table_name} (scan_id,{table_columns}) VALUES ({scan_id},{val_string})'
+            sql_save_results = (f'INSERT OR IGNORE '
+                                f'INTO {table_name} (scan_id,{table_columns}) '
+                                f'VALUES ({scan_id},{val_string})')
             self.db_execute_statement(conn, sql_save_results)
 
         conn.close()
-
 
     def load_scan_results(self, scan_id, column_names, table_name):
         ''' load scan results from previous modules, from the database.
 
             @param:     scan_id (int)           - the scan id to be loaded
-            @param:     column_names (string)   - the column names to load. multiple
+            @param:     column_names (string)   - the column names to load.
                                                   columns delimited with commas
             @param:     scan_name (string)      - the name of the scan module
 
@@ -181,13 +185,13 @@ class DBManager:
         conn = self.db_get_connection(self.db_paths['scan_results'])
 
         # the SQL query to get the scan results
-        sql_load_scan = f'SELECT {column_names} FROM {table_name} WHERE scan_id={scan_id}'
+        sql_load_scan = (f'SELECT {column_names} '
+                         f'FROM {table_name} '
+                         f'*WHERE scan_id={scan_id}')
 
         # execute the query and get results
         result = self._db_get_data(conn, sql_load_scan)
 
-        # convert the returned tuple to a list
-        #results = [r[0] for r in result]
         conn.close()
 
         return result

@@ -1,11 +1,7 @@
-import requests
-
-from datetime import datetime
-from functools import partial
 from multiprocessing import Pool
 
 from util_functions import http_get_request
-from util_functions import success, warning, info
+from util_functions import success, info
 
 
 class DirectoryScanner:
@@ -36,19 +32,18 @@ class DirectoryScanner:
         # save generated list to be run on next scan
         # TODO: save generated text to a db table
 
-
     def _create_db_table(self):
         """ used to create database table needed to store results for this
             module. should be overwritten to meet this modules storage needs
         """
         if not self.main.db.db_table_exists(self.info['db_table_name']):
-            sql_create_statement = (f'CREATE TABLE IF NOT EXISTS {self.info["db_table_name"]} ('
+            sql_create_statement = (f'CREATE TABLE IF NOT EXISTS '
+                                    f'{self.info["db_table_name"]} ('
                                     f'id INTEGER PRIMARY KEY AUTOINCREMENT,'
                                     f'scan_id INTEGER NOT NULL,'
                                     f'directory TEXT,'
                                     f'UNIQUE(scan_id, directory));')
             self.main.db.db_create_table(sql_create_statement)
-
 
     def _load_scan_results(self):
         """ loads in results from previous scans, should be overwritten to load
@@ -90,11 +85,6 @@ class DirectoryScanner:
             return word
 
     def run_module(self):
-        start_time = datetime.now()
-        # info('Starting directory scan on {}:{} at {}'.format(self.main.host,
-        #                                            self.main.port,
-        #                                            datetime.strftime(start_time,
-        #                                             '%d/%b/%Y %H:%M:%S')))
         info('Searching for directories...')
 
         # create the threads
@@ -111,7 +101,10 @@ class DirectoryScanner:
         directories_found = thread_pool.map(self._run_thread, word_list)
 
         # remove None results
-        directories_found = [directory for directory in directories_found if directory != None]
+        directories_found = [directory
+                             for directory
+                             in directories_found
+                             if directory is not None]
 
         # close the threads
         thread_pool.close()
@@ -119,6 +112,3 @@ class DirectoryScanner:
 
         # save the directories found to the database
         self._save_scan_results(directories_found)
-
-        end_time = datetime.now()
-        #info('Directory search completed. Elapsed: {}'.format(end_time - start_time))

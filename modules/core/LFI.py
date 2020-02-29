@@ -1,12 +1,8 @@
-import requests
-
-from datetime import datetime
-from functools import partial
 from multiprocessing import Pool
 
-from util_functions import http_get_request
-from util_functions import success, warning, info
+from util_functions import info
 from modules.core.InjectionScannerBase import InjectionScannerBase
+
 
 class LFI(InjectionScannerBase):
     """ This module is used to scan for local file inclusions, it does this by
@@ -25,7 +21,7 @@ class LFI(InjectionScannerBase):
 
     def __init__(self, main):
         """
-            @param main (WebScanner) - a webscanner object to share configuration
+            @param main (WebScanner) - a webscanner object to share config
                                        between modules
         """
         self.main = main
@@ -40,20 +36,21 @@ class LFI(InjectionScannerBase):
             the SQL statement to db_create_table.
         """
         if not self.main.db.db_table_exists(self.info['db_table_name']):
-            sql_create_statement = (f'CREATE TABLE IF NOT EXISTS {self.info["db_table_name"]}('
-                                    f'id INTEGER PRIMARY KEY AUTOINCREMENT,'
-                                    f'scan_id INTEGER NOT NULL,'
-                                    f'page,'
-                                    f'lfi_param,'
-                                    f'UNIQUE(page, lfi_param)'
-                                    f');')
+            sql_create_statement = ('CREATE TABLE IF NOT EXISTS '
+                                    f'{self.info["db_table_name"]}('
+                                    'id INTEGER PRIMARY KEY AUTOINCREMENT,'
+                                    'scan_id INTEGER NOT NULL,'
+                                    'page,'
+                                    'lfi_param,'
+                                    'UNIQUE(page, lfi_param)'
+                                    ');')
             self.main.db.db_create_table(sql_create_statement)
 
     def _save_scan_results(self, results):
         """ used to save the results of the module to the database
 
-            @param: results -       a list of the results from the module, should
-                                    be a list of text
+            @param: results -       a list of the results from the module,
+                                    should be a list of text
         """
         full_list = []
         for r in results:
@@ -64,15 +61,16 @@ class LFI(InjectionScannerBase):
                                        "page, lfi_param",
                                        full_list)
 
-
     def run_module(self):
         info("Searching for local file inclusions...")
 
         # load in a list of lfi attach strings
-        self.attack_strings = self.main.db.db_get_wordlist_generic('lfi', 'word')
+        self.attack_strings = self.main.db.db_get_wordlist_generic('lfi',
+                                                                   'word')
         self.attack_strings = [s[0] for s in self.attack_strings]
 
-        self.re_search_strings = self.main.db.db_get_wordlist_generic('lfi_detect', 'regex')
+        self.re_search_strings = self.main.db.\
+            db_get_wordlist_generic('lfi_detect', 'regex')
         self.re_search_strings = [s[0] for s in self.re_search_strings]
 
         # load in params

@@ -1,12 +1,8 @@
-import requests
-
-from datetime import datetime
-from functools import partial
 from multiprocessing import Pool
 
-from util_functions import http_get_request
-from util_functions import success, warning, info
+from util_functions import info
 from modules.core.InjectionScannerBase import InjectionScannerBase
+
 
 class CrossSiteScripting(InjectionScannerBase):
     """ This module is used to scan for local file inclusions, it does this by
@@ -25,8 +21,8 @@ class CrossSiteScripting(InjectionScannerBase):
 
     def __init__(self, main):
         """
-            @param main (WebScanner) - a webscanner object to share configuration
-                                       between modules
+            @param main (WebScanner) - a webscanner object to share
+                                        configuration between modules
         """
         self.main = main
 
@@ -40,7 +36,8 @@ class CrossSiteScripting(InjectionScannerBase):
             the SQL statement to db_create_table.
         """
         if not self.main.db.db_table_exists(self.info['db_table_name']):
-            sql_create_statement = (f'CREATE TABLE IF NOT EXISTS {self.info["db_table_name"]}('
+            sql_create_statement = (f'CREATE TABLE IF NOT EXISTS '
+                                    f'{self.info["db_table_name"]}('
                                     f'id INTEGER PRIMARY KEY AUTOINCREMENT,'
                                     f'scan_id INTEGER NOT NULL,'
                                     f'page,'
@@ -52,8 +49,8 @@ class CrossSiteScripting(InjectionScannerBase):
     def _save_scan_results(self, results):
         """ used to save the results of the module to the database
 
-            @param: results -       a list of the results from the module, should
-                                    be a list of text
+            @param: results -       a list of the results from the module,
+                                    should be a list of text
         """
         full_list = []
         for r in results:
@@ -64,12 +61,12 @@ class CrossSiteScripting(InjectionScannerBase):
                                        "page, xss_param",
                                        full_list)
 
-
     def run_module(self):
         info("Searching for cross site scripting...")
 
         # load in a list of lfi attach strings
-        self.attack_strings = self.main.db.db_get_wordlist_generic('xss', 'word')
+        self.attack_strings = self.main.db.db_get_wordlist_generic('xss',
+                                                                   'word')
         self.attack_strings = [s[0] for s in self.attack_strings]
 
         # the search strings will be the attack strings themselves

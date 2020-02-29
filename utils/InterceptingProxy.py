@@ -1,11 +1,9 @@
 import requests
 import signal
-import pickle
-import os.path
-from util_functions import info, success, warning
 from http.server import HTTPServer, BaseHTTPRequestHandler
 
 gl_crawler_base = None
+
 
 class HTTPProxy(BaseHTTPRequestHandler):
 
@@ -22,7 +20,6 @@ class HTTPProxy(BaseHTTPRequestHandler):
         self.proxy_response_handle(resp)
         return
 
-
     def do_POST(self):
         content_length = int(self.headers['Content-Length'])
         body = self.rfile.read(content_length)
@@ -31,10 +28,14 @@ class HTTPProxy(BaseHTTPRequestHandler):
         url = f'http://{hostname}{self.path}'
         req_header = self.parse_headers(self.headers.as_string())
 
-        resp = requests.post(url, headers=req_header, data=body, verify=False, stream=True)
+        resp = requests.post(
+            url,
+            headers=req_header,
+            data=body,
+            verify=False,
+            stream=True)
         self.proxy_response_handle(resp)
         return
-
 
     def proxy_response_handle(self, resp):
         global gl_crawler_base
@@ -53,7 +54,6 @@ class HTTPProxy(BaseHTTPRequestHandler):
 
         self.wfile.write(resp.raw.data)
 
-
     def parse_headers(self, headers_string):
         header_dict = {}
 
@@ -61,14 +61,13 @@ class HTTPProxy(BaseHTTPRequestHandler):
         header_list = headers_string.split('\n')
 
         for header in header_list:
-            if not ':' in header:
+            if ':' not in header:
                 continue
 
-            k,v = header.split(': ')
+            k, v = header.split(': ')
             header_dict[k] = v
 
         return header_dict
-
 
     def log_message(self, format, *args):
         """ supresses output

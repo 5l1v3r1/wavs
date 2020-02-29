@@ -4,11 +4,9 @@ import random
 import string
 
 from datetime import datetime
-from multiprocessing import Pool
-from functools import partial
-
 from util_functions import success, warning, info
 from util_functions import http_get_request
+
 
 class InitialScanner:
     __wavs_mod__ = True
@@ -31,7 +29,6 @@ class InitialScanner:
             "numberOfThreads": 1
         }
 
-
     def _is_server_up(self):
         ''' checks if the server us up
 
@@ -39,13 +36,13 @@ class InitialScanner:
             :return (int): 0 - server is up and responding
                            1 - server is not responding
         '''
-        resp = http_get_request(f'{self.main.get_host_url_base()}', self.main.cookies)
+        resp = http_get_request(f'{self.main.get_host_url_base()}',
+                                self.main.cookies)
 
         if resp == 1:
             return 1
         else:
             return 0
-
 
     def _check_fuzzing(self):
         ''' checks if a random string returns a 200 success code.
@@ -57,14 +54,17 @@ class InitialScanner:
         '''
 
         # construct a random string of length 10
-        should_not_find = ''.join(random.choice(string.ascii_lowercase) for i in range(20))
+        should_not_find = ''.join(
+                                random.choice(string.ascii_lowercase)
+                                for i in range(20))
 
         # make a get request with random string as a directory
-        resp = requests.get(f'{self.main.get_host_url_base()}/{should_not_find}', self.main.cookies)
+        resp = requests.get(f'{self.main.get_host_url_base()}/'
+                            f'{should_not_find}', self.main.cookies)
 
         # check for success code
         if resp.status_code == 200:
-            warning('/{} returned code 200. Should switch to fuzzing'.format(should_not_find))
+            warning(f'/{should_not_find} returned code 200. ')
             return 1
 
         # TODO: switch to fuzzing mode?

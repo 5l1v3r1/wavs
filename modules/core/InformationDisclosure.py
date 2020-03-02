@@ -11,6 +11,7 @@ class InformationDisclosure:
     info = {
         "name": "Information Disclosure",
         "db_table_name": "info_disc_discovered",
+        "wordlist_name": "info_disclosure",
         "desc": "Scans for files that should be accessible",
         "author": "@ryan_ritchie"
     }
@@ -107,11 +108,11 @@ class InformationDisclosure:
         """
         info('Searching for information disclosure...')
 
-        self.extension_list = self.main.db.db_get_wordlist_generic('info_disc',
-                                                                   'extension')
+        self.extension_list = self.main.db.db_get_wordlist(
+            self.info['wordlist_name'])
         self.extension_list = [ext[0] for ext in self.extension_list]
 
-        word_list = self.main.db.db_get_wordlist('dir_test', 'general')
+        word_list = self.main.db.db_get_wordlist('file')
 
         # create the threads
         # need to let user change the number of threads used

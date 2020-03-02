@@ -16,6 +16,7 @@ class CrossSiteScripting(InjectionScannerBase):
         "name": "Cross Site Scripting",
         "desc": "Checks for cross site scripting vulnerabilities",
         "db_table_name": "xss_discovered",
+        "wordlist_name": "xss_injection",
         "author": "@ryan_ritchie"
     }
 
@@ -65,8 +66,8 @@ class CrossSiteScripting(InjectionScannerBase):
         info("Searching for cross site scripting...")
 
         # load in a list of lfi attach strings
-        self.attack_strings = self.main.db.db_get_wordlist_generic('xss',
-                                                                   'word')
+        self.attack_strings = self.main.db.db_get_wordlist(
+            self.info['xss_injection'])
         self.attack_strings = [s[0] for s in self.attack_strings]
 
         # the search strings will be the attack strings themselves

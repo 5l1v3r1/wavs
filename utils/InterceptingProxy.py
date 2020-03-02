@@ -16,6 +16,7 @@ class HTTPProxy(BaseHTTPRequestHandler):
         url = f'http://{hostname}{self.path}'
         req_header = self.parse_headers(self.headers.as_string())
 
+        print(f'making a request to {url}')
         resp = requests.get(url, headers=req_header, verify=False, stream=True)
         self.proxy_response_handle(resp)
         return
@@ -27,6 +28,7 @@ class HTTPProxy(BaseHTTPRequestHandler):
         hostname = '127.0.0.1:80'
         url = f'http://{hostname}{self.path}'
         req_header = self.parse_headers(self.headers.as_string())
+        print(body)
 
         resp = requests.post(
             url,
@@ -45,6 +47,7 @@ class HTTPProxy(BaseHTTPRequestHandler):
 
         # Send response status code
         self.send_response(resp.status_code)
+        print(len(resp.raw.data))
 
         for key in resp.headers:
             self.send_header(key, resp.headers[key])

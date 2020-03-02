@@ -9,6 +9,7 @@ class CSRF:
     info = {
         "name": "Cross Site Request Forgery",
         "db_table_name": "csrf_discovered",
+        "wordlist_name": "csrf",
         "desc": "Searches for the lack of anti-csrf tokens in forms",
         "author": "@ryan_ritchie"
     }
@@ -90,8 +91,7 @@ class CSRF:
         info('Searching for CSRF...')
 
         self.csrf_fields = self.main.db.\
-            db_get_wordlist_generic('csrf',
-                                    'csrf_field_name')
+            db_get_wordlist(self.info['wordlist_name'])
         forms_discovered = self._load_scan_results()
 
         # create the threads

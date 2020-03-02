@@ -16,6 +16,7 @@ class LFI(InjectionScannerBase):
         "name": "Local File Inclusion",
         "desc": "Checks for local file inclusion vulnerability",
         "db_table_name": "lfi_discovered",
+        "wordlist_name": "lfi_injection",
         "author": "@ryan_ritchie"
     }
 
@@ -65,12 +66,12 @@ class LFI(InjectionScannerBase):
         info("Searching for local file inclusions...")
 
         # load in a list of lfi attach strings
-        self.attack_strings = self.main.db.db_get_wordlist_generic('lfi',
-                                                                   'word')
+        self.attack_strings = self.main.db.db_get_wordlist(
+            self.info['wordlist_name'])
         self.attack_strings = [s[0] for s in self.attack_strings]
 
         self.re_search_strings = self.main.db.\
-            db_get_wordlist_generic('lfi_detect', 'regex')
+            get_detect_wordlist('lfi')
         self.re_search_strings = [s[0] for s in self.re_search_strings]
 
         # load in params

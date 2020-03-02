@@ -105,12 +105,12 @@ class Crawler:
             if '?' in path:
                 path = path.split('?')[0]
 
-            if '/' in path:
-                path = path.replace('/', '')
+            # if '/' in path:
+            #     path = path.replace('/', '')
 
             if path not in self.manual_found_pages:
                 self.manual_found_pages.append(path)
-                success(f'Found new page: {path}', prepend='    ')
+                # success(f'Found new page: {path}', prepend='    ')
 
     def run_module(self):
         info('Crawling links...')

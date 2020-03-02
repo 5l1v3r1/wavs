@@ -1,13 +1,19 @@
 import sqlite3
 from sqlite3 import Error
 from datetime import datetime
+from peewee import SqliteDatabase, Model
 # TODO: use prepared statements for SQL
 
 
 class DBManager:
     def __init__(self):
         self.db_paths = {}
-        self.db_paths['attack_strings'] = 'database/main.db'
+
+        # test db
+        self.db_paths['attack_strings'] = 'database/wordlists_test.db'
+
+        # production db
+        # self.db_paths['attack_strings'] = 'database/wordlists_prod.db'
         self.db_paths['scan_results'] = 'database/scans.db'
 
     def db_get_connection(self, database_file):
@@ -72,7 +78,7 @@ class DBManager:
         except Error as e:
             print(e)
 
-    def db_get_wordlist(self, wordlist_name, group_name):
+    def db_get_wordlist(self, type):
         """ load a wordlist from the database
 
             :param wordlist_name:   the name of the wordlist, and table name
@@ -81,9 +87,21 @@ class DBManager:
         """
         c = self.db_get_connection(self.db_paths['attack_strings'])
 
-        sql_get_wordlist = (f'SELECT word '
-                            f'FROM "{wordlist_name}" '
-                            f'WHERE type = "{group_name}"')
+        sql_get_wordlist = (f'SELECT payload '
+                            f'FROM "wordlist" '
+                            f'WHERE type = "{type}"')
+
+        result = self._db_get_data(c, sql_get_wordlist)
+        wordlist = [row[0] for row in result]
+
+        return wordlist
+
+    def get_detect_wordlist(self, type):
+        c = self.db_get_connection(self.db_paths['attack_strings'])
+
+        sql_get_wordlist = (f'SELECT detect_string '
+                            f'FROM "detect" '
+                            f'WHERE type = "{type}"')
 
         result = self._db_get_data(c, sql_get_wordlist)
         wordlist = [row[0] for row in result]
@@ -187,7 +205,7 @@ class DBManager:
         # the SQL query to get the scan results
         sql_load_scan = (f'SELECT {column_names} '
                          f'FROM {table_name} '
-                         f'*WHERE scan_id={scan_id}')
+                         f'WHERE scan_id={scan_id}')
 
         # execute the query and get results
         result = self._db_get_data(conn, sql_load_scan)

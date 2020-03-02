@@ -21,6 +21,7 @@ class SQLInjectionScanner(InjectionScannerBase):
         "name": "SQL Injection Scanner",
         "desc": "Scan the web application for SQL injections",
         "db_table_name": "sql_injections",
+        "wordlist_name": "sqli_injection",
         "author": "@ryan_ritchie"
     }
 
@@ -59,10 +60,10 @@ class SQLInjectionScanner(InjectionScannerBase):
 
         # get the injectable params
         params = self._load_scan_results()
-        self.attack_strings = self.main.db.db_get_wordlist('sqli', 'error')
+        self.attack_strings = self.main.db.db_get_wordlist(
+            self.info['wordlist_name'])
         self.re_search_strings = self.main.db.\
-            db_get_wordlist_generic('sql_errors',
-                                    'message')
+            get_detect_wordlist('sql')
         self.re_search_strings = [s[0] for s in self.re_search_strings]
 
         # pass them off to threads

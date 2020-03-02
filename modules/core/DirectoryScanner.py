@@ -3,6 +3,8 @@ from multiprocessing import Pool
 from util_functions import http_get_request
 from util_functions import success, info
 
+from peewee import SqliteDatabase, Model, IntegerField, TextField
+
 
 class DirectoryScanner:
     """ This module is used to scan a web application for exposed directories
@@ -13,6 +15,7 @@ class DirectoryScanner:
     info = {
         "name": "Directory Scanner",
         "db_table_name": "directories_discovered",
+        "wordlist_name": "directory",
         "desc": "Scans a web application for directories",
         "author": "@ryan_ritchie"
     }
@@ -92,7 +95,7 @@ class DirectoryScanner:
 
         # load in the wordlist from database
         # word_list = db_get_wordlist('directory', 'general')
-        word_list = self.main.db.db_get_wordlist('dir_test', 'general')
+        word_list = self.main.db.db_get_wordlist(self.info['wordlist_name'])
 
         # add an empty string so that the root directory is scanned
         word_list.append('')

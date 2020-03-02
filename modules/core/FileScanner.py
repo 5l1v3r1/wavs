@@ -11,6 +11,7 @@ class FileScanner:
     info = {
         "name": "File Scanner",
         "db_table_name": "files_discovered",
+        "wordlist_name": "file",
         "desc": "Scans for files once ",
         "author": "@ryan_ritchie"
     }
@@ -108,7 +109,7 @@ class FileScanner:
 
         # TODO: create a file wordlist
         # word_list = db_get_wordlist('directory', 'general')
-        word_list = self.main.db.db_get_wordlist('dir_test', 'general')
+        word_list = self.main.db.db_get_wordlist(self.info['wordlist_name'])
 
         # create the threads
         # need to let user change the number of threads used

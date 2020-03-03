@@ -55,6 +55,9 @@ class FileScanner:
                                        "file",
                                        results)
 
+        # update wordlist count for successful words
+        self.main.db.update_count(results, self.info['wordlist_name'])
+
     def _run_thread(self, directory, word):
         """ makes a HTTP GET request to check if a file exists. to be used as
             a thread.
@@ -119,6 +122,11 @@ class FileScanner:
 
         # loop through the list of directories found by _dir_scanner
         dirs_discovered = self._load_scan_results()
+
+        # if there are no dirs found
+        if not dirs_discovered:
+            dirs_discovered.append('')
+
         for directory in dirs_discovered:
             # use partial to allow more parameters passed to map
             func = partial(self._run_thread, directory)

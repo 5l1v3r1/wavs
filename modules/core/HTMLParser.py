@@ -60,7 +60,7 @@ class HTMLParser:
                                        "method, action, parameter",
                                        full_list)
 
-    def _extract_link_params(self, link):
+    def _extract_link_params(self, link, directory_path):
         assert('?' in link)
 
         action, params = link.split('?')
@@ -69,9 +69,11 @@ class HTMLParser:
         for param in params.split('&'):
             stored_params.append(param.split('=')[0])
 
-        return {'method': 'GET', 'action': action, 'params': stored_params}
+        return {'method': 'GET',
+                'action': directory_path + action,
+                'params': stored_params}
 
-    def _extract_links(self, html):
+    def _extract_links(self, html, directory_path):
         """ extract anchor links out of html data
 
             :param html:        a beautiful soup html object
@@ -95,7 +97,8 @@ class HTMLParser:
                 continue
 
             # extract the parameters from the link
-            links.append(self._extract_link_params(link.get('href')))
+            links.append(self._extract_link_params(link.get('href'),
+                                                   directory_path))
 
         return links
 
@@ -117,26 +120,31 @@ class HTMLParser:
 
         return field.get('name')
 
-    def _extract_forms(self, html):
+    def _extract_forms(self, html, directory_path):
         """ extract params from html forms
 
             :param html:        a beautiful soup html object
             :return (list):     a list of params found in the html
         """
 
-        form_params = []
+        all_forms = []
         forms = html.find_all('form')
 
         if not forms:
-            return None
+            return []
 
         for form in forms:
+            form_params = []
             for field in form.find_all('input'):
-                form_params.append(self._extract_form_params(form, field))
+                field_name = self._extract_form_params(form, field)
+                if field_name:
+                    form_params.append(field_name)
 
-        return {'method': form.get('method'),
-                'action': form.get('action'),
-                'params': form_params}
+            all_forms.append({'method': form.get('method'),
+                              'action': directory_path + form.get('action'),
+                              'params': form_params})
+
+        return all_forms
 
     def _run_thread(self, webpage):
         """ runs in a thread. parses a webpage's html for form and links, then
@@ -152,9 +160,15 @@ class HTMLParser:
         # look for params to inject into
         soup = BeautifulSoup(html, 'html.parser')
 
+        directory_path = ''
+        # if the webpage has a directory
+        if '/' in webpage:
+            path_split = webpage.split('/')
+            directory_path = '/'.join(path_split[:-1]) + '/'
+
         params = []
-        params.extend(self._extract_links(soup))
-        params.append(self._extract_forms(soup))
+        params.extend(self._extract_links(soup, directory_path))
+        params.extend(self._extract_forms(soup, directory_path))
 
         return params
 
@@ -185,6 +199,9 @@ class HTMLParser:
         final = []
         found_params = [final.extend(p) for p in found_params if p]
         final = list(filter(None, final))
+
+        # remove duplicate found parameters
+        final = [i for n, i in enumerate(final) if i not in final[n + 1:]]
 
         if self.main.options['verbose']:
             for params in final:

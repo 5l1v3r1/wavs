@@ -1,7 +1,8 @@
 import sqlite3
+import os.path
 from sqlite3 import Error
 from datetime import datetime
-from peewee import SqliteDatabase, Model
+from util_functions import warning
 # TODO: use prepared statements for SQL
 
 
@@ -15,6 +16,22 @@ class DBManager:
         # production db
         # self.db_paths['attack_strings'] = 'database/wordlists_prod.db'
         self.db_paths['scan_results'] = 'database/scans.db'
+
+        if not os.path.exists(self.db_paths['attack_strings']):
+            warning(f'Could not find wordlist database at: '
+                    f'{self.db_paths["attack_strings"]}')
+            exit()
+
+        # if the scans database doesn't exist then create it
+        if not os.path.exists(self.db_paths['scan_results']):
+            sql_create_statement = ('CREATE TABLE IF NOT EXISTS '
+                                    'scans('
+                                    'id INTEGER PRIMARY KEY AUTOINCREMENT,'
+                                    'timestamp TEXT NOT NULL,'
+                                    'host TEXT NOT NULL,'
+                                    'port INTEGER NOT NULL'
+                                    ');')
+            self.db_create_table(sql_create_statement)
 
     def db_get_connection(self, database_file):
         """ create the database connection to the sqlite database
@@ -87,9 +104,10 @@ class DBManager:
         """
         c = self.db_get_connection(self.db_paths['attack_strings'])
 
-        sql_get_wordlist = (f'SELECT payload '
-                            f'FROM "wordlist" '
-                            f'WHERE type = "{type}"')
+        sql_get_wordlist = ('SELECT payload '
+                            'FROM "wordlist" '
+                            f'WHERE type = "{type}" '
+                            'ORDER BY "count" DESC;')
 
         result = self._db_get_data(c, sql_get_wordlist)
         wordlist = [row[0] for row in result]
@@ -213,3 +231,30 @@ class DBManager:
         conn.close()
 
         return result
+
+    def update_count(self, payloads, type):
+        """ updates the count of words in the wordlist when they successfully
+            find something
+
+            @param:     payloads        - a list of words that were successful
+            @param:     type            - the type of wordlist the payloads
+                                          belong to
+        """
+        try:
+            conn = self.db_get_connection(self.db_paths['attack_strings'])
+            cursor = conn.cursor()
+
+            # TODO: if words dont exist in wordlist, add them
+            # TODO: add ability to set a custom wordlist
+
+            for payload in payloads:
+                cursor.execute('UPDATE wordlist '
+                               'SET count = count + 1 '
+                               'WHERE type = ? '
+                               'AND payload = ?;', (type, payload))
+
+            conn.commit()
+            conn.close()
+        except Error as e:
+            print('SQL Error')
+            print(e)

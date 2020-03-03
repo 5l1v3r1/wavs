@@ -99,6 +99,16 @@ config = {
           ],
         "initial": [
             "Initial Scanner"
-          ]
+          ],
+        "sql": [
+            "File Scanner",
+            "HTML Parser",
+            "SQL Injection Scanner"
+        ],
+        "lfi": [
+            "File Scanner",
+            "HTML Parser",
+            "Local File Inclusion"
+        ]
     }
 }

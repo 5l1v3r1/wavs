@@ -50,10 +50,16 @@ class InformationDisclosure:
     def _save_scan_results(self, results):
         """ dont have to worry about inserting id, scan_id
         """
+
+        # get a list of only the file extensions
+        exts = [r.split('.')[1] for r in results if '.' in r]
+
         self.main.db.save_scan_results(self.main.id,
                                        self.info['db_table_name'],
                                        "file",
                                        results)
+
+        self.main.db.update_count(exts, self.info['wordlist_name'])
 
     def _run_thread(self, directory, word):
         """ makes a HTTP GET request to check if a file exists. to be used as
@@ -110,9 +116,8 @@ class InformationDisclosure:
 
         self.extension_list = self.main.db.db_get_wordlist(
             self.info['wordlist_name'])
-        self.extension_list = [ext[0] for ext in self.extension_list]
 
-        word_list = self.main.db.db_get_wordlist('file')
+        word_list = ['test']#self.main.db.db_get_wordlist('file')
 
         # create the threads
         # need to let user change the number of threads used

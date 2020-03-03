@@ -57,10 +57,18 @@ class LFI(InjectionScannerBase):
         for r in results:
             full_list.extend(r)
 
+        # get the successful injections from results
+        injections = [(tup[2]) for tup in full_list]
+
+        # remove the injection from results
+        full_list = [(tup[0], tup[1]) for tup in full_list]
+
         self.main.db.save_scan_results(self.main.id,
                                        self.info['db_table_name'],
                                        "page, lfi_param",
                                        full_list)
+
+        self.main.db.update_count(injections, self.info['wordlist_name'])
 
     def run_module(self):
         info("Searching for local file inclusions...")
@@ -68,11 +76,9 @@ class LFI(InjectionScannerBase):
         # load in a list of lfi attach strings
         self.attack_strings = self.main.db.db_get_wordlist(
             self.info['wordlist_name'])
-        self.attack_strings = [s[0] for s in self.attack_strings]
 
         self.re_search_strings = self.main.db.\
             get_detect_wordlist('lfi')
-        self.re_search_strings = [s[0] for s in self.re_search_strings]
 
         # load in params
         injectable_params = self._load_scan_results()

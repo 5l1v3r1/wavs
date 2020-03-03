@@ -13,7 +13,7 @@ from conf import config
 from utils.DBManager import DBManager
 from util_functions import load_module
 from util_functions import cookie_parse
-from util_functions import warning, banner_colour
+from util_functions import info, warning, banner_colour
 
 
 ########################
@@ -306,8 +306,12 @@ class WebScanner():
             modules_to_run.append(self.modules[module_name])
 
         # loop through the modules in the scan type and call the run method
-        for module in modules_to_run:
-            module.run_module()
+        try:
+            for module in modules_to_run:
+                module.run_module()
+        except KeyboardInterrupt:
+            info('Exiting...')
+            exit()
 
 
 if __name__ == '__main__':

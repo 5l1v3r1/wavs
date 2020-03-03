@@ -57,18 +57,25 @@ class CrossSiteScripting(InjectionScannerBase):
         for r in results:
             full_list.extend(r)
 
+        # get the successful injections from results
+        injections = [(tup[2]) for tup in full_list]
+
+        # remove the injection from results
+        full_list = [(tup[0], tup[1]) for tup in full_list]
+
         self.main.db.save_scan_results(self.main.id,
                                        self.info['db_table_name'],
                                        "page, xss_param",
                                        full_list)
+
+        self.main.db.update_count(injections, self.info['wordlist_name'])
 
     def run_module(self):
         info("Searching for cross site scripting...")
 
         # load in a list of lfi attach strings
         self.attack_strings = self.main.db.db_get_wordlist(
-            self.info['xss_injection'])
-        self.attack_strings = [s[0] for s in self.attack_strings]
+            self.info['wordlist_name'])
 
         # the search strings will be the attack strings themselves
         # because python will not interpret any javascript

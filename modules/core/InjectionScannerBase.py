@@ -1,5 +1,3 @@
-import re
-
 from util_functions import success
 from util_functions import http_get_request, http_post_request
 
@@ -59,17 +57,17 @@ class InjectionScannerBase:
 
         return param_dict
 
-    def _check_page_content(self, param, page, page_text):
+    def _check_page_content(self, injection, param, page, page_text):
         assert(hasattr(self, "re_search_strings"))
 
         search_strings = self.re_search_strings
 
-        if any([re.search(s, page_text) for s in search_strings]):
+        if any([s in page_text for s in search_strings]):
             if not (page, param) in self.injectable_params:
                 if self.main.options['verbose']:
-                    success(f'Vulnerable parameter: {page}/{param}',
+                    success(f'Vulnerable parameter: {page}/{param} ({injection})',
                             prepend='  ')
-                self.injectable_params.append((page, param))
+                self.injectable_params.append((page, param, injection))
 
             return True
 
@@ -79,6 +77,7 @@ class InjectionScannerBase:
         method = param[0]
         page = param[1]
 
+        self.injections = []
         self.injectable_params = []
         inject_params = param[2].split(', ')
 
@@ -93,7 +92,7 @@ class InjectionScannerBase:
                     final_url = url.replace(f'{p}=test', f'{p}={injection}')
 
                     resp = http_get_request(final_url, self.main.cookies)
-                    self._check_page_content(p, page, resp.text)
+                    self._check_page_content(injection, p, page, resp.text)
 
         elif method == 'POST':
             # construct the url to make the request to
@@ -106,7 +105,7 @@ class InjectionScannerBase:
                     params[p] = injection
 
                     resp = http_post_request(url, params, self.main.cookies)
-                    if self._check_page_content(p, page, resp.text):
+                    if self._check_page_content(injection, p, page, resp.text):
                         break
 
         return self.injectable_params

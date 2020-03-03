@@ -66,6 +66,9 @@ class DirectoryScanner:
                                        "directory",
                                        results)
 
+        # update wordlist count for successful words
+        self.main.db.update_count(results, self.info['wordlist_name'])
+
     def _run_thread(self, word):
         """ makes a HTTP GET request to check if a directory exists. to be used
             as a thread.

@@ -21,13 +21,12 @@ class SQLInjectionScanner(InjectionScannerBase):
         "name": "SQL Injection Scanner",
         "desc": "Scan the web application for SQL injections",
         "db_table_name": "sql_injections",
-        "wordlist_name": "sqli_injection",
+        "wordlist_name": "sql_injection",
         "author": "@ryan_ritchie"
     }
 
     def __init__(self, main, options=None):
         self.main = main
-
         self._create_db_table()
 
     def _create_db_table(self):
@@ -50,10 +49,18 @@ class SQLInjectionScanner(InjectionScannerBase):
         for r in results:
             full_list.extend(r)
 
+        # get the successful injections from results
+        injections = [(tup[2]) for tup in full_list]
+
+        # remove the injection from results
+        full_list = [(tup[0], tup[1]) for tup in full_list]
+
         self.main.db.save_scan_results(self.main.id,
                                        self.info['db_table_name'],
                                        "page, sql_injection_param",
                                        full_list)
+
+        self.main.db.update_count(injections, self.info['wordlist_name'])
 
     def run_module(self):
         info('Searching for SQL injections...')
@@ -64,7 +71,6 @@ class SQLInjectionScanner(InjectionScannerBase):
             self.info['wordlist_name'])
         self.re_search_strings = self.main.db.\
             get_detect_wordlist('sql')
-        self.re_search_strings = [s[0] for s in self.re_search_strings]
 
         # pass them off to threads
         thread_pool = Pool(self.main.options['threads'])

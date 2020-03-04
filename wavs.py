@@ -7,10 +7,13 @@
 ################
 # imports      #
 ################
+import os
 import argparse
 
 from conf import config
+from time import sleep
 from utils.DBManager import DBManager
+from util_functions import clear_screen
 from util_functions import load_module
 from util_functions import cookie_parse
 from util_functions import info, warning, banner_colour
@@ -101,9 +104,23 @@ class WebScanner():
         self._banner()
 
         if arg_parse.generator:
+            info('Starting text generation...')
+            sleep(2)
+
+            # suppress debugging output from tensorflow
+            os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
+
+            # start text generation
+            from utils.TextGenerator import TextGenerator
+            self.text_generator = TextGenerator(self)
             self.run_text_generation()
+
+            # clear the screen because tensorflow creates a lot of output
+            clear_screen()
+            info('Completed text generation')
         else:
             self.run_modules()
+            self.db.remove_generated_text()
 
     def _load_config(self):
         """ loads in the configuration data contained in conf/config.py then
@@ -146,6 +163,8 @@ class WebScanner():
             config_dict['options']['text_generator_epochs']
         self.options['proxy_port'] = \
             config_dict['options']['proxy_port']
+        self.options['text_generator_temp'] = \
+            config_dict['options']['text_generator_temp']
 
     def _parse_cmd_line_args(self, arg_parse):
         """ parses the command line arguments passed into the program, and
@@ -283,7 +302,18 @@ class WebScanner():
             @params:        None
             @returns:       None
         """
-        for module in self.modules:
+
+        conn = self.db.get_connection(self.db.db_paths['attack_strings'])
+        cursor = conn.cursor()
+        cursor.execute('CREATE TABLE IF NOT EXISTS '
+                       'generated_text ('
+                       'id INTEGER PRIMARY KEY AUTOINCREMENT,'
+                       'text TEXT NOT NULL,'
+                       'type TEXT NOT NULL);')
+        conn.commit()
+        conn.close()
+
+        for module in self.modules.values():
             module.generate_text()
 
     def run_modules(self):

@@ -3,8 +3,6 @@ from multiprocessing import Pool
 from util_functions import http_get_request
 from util_functions import success, info
 
-from peewee import SqliteDatabase, Model, IntegerField, TextField
-
 
 class DirectoryScanner:
     """ This module is used to scan a web application for exposed directories
@@ -27,28 +25,29 @@ class DirectoryScanner:
 
     def generate_text(self):
         # load in text to be trained
-        text_list = self.main.db.db_get_wordlist_generic('directory', 'word')
+        text_list = self.main.db.get_wordlist(self.info['wordlist_name'])
 
         # generate a list of words based on training text
         generated_list = self.main.text_generator.generate(text_list)
 
         # save generated list to be run on next scan
-        # TODO: save generated text to a db table
+        self.main.db.save_generated_text(generated_list,
+                                         self.info['wordlist_name'])
 
     def _create_db_table(self):
         """ used to create database table needed to store results for this
             module. should be overwritten to meet this modules storage needs
         """
-        if not self.main.db.db_table_exists(self.info['db_table_name']):
+        if not self.main.db.table_exists(self.info['db_table_name']):
             sql_create_statement = (f'CREATE TABLE IF NOT EXISTS '
                                     f'{self.info["db_table_name"]} ('
                                     f'id INTEGER PRIMARY KEY AUTOINCREMENT,'
                                     f'scan_id INTEGER NOT NULL,'
                                     f'directory TEXT,'
                                     f'UNIQUE(scan_id, directory));')
-            self.main.db.db_create_table(sql_create_statement)
+            self.main.db.create_table(sql_create_statement)
 
-    def _load_scan_results(self):
+    def _get_previous_results(self):
         """ loads in results from previous scans, should be overwritten to load
             in specific results needed for this module
         """
@@ -97,8 +96,8 @@ class DirectoryScanner:
         thread_pool = Pool(self.main.options['threads'])
 
         # load in the wordlist from database
-        # word_list = db_get_wordlist('directory', 'general')
-        word_list = self.main.db.db_get_wordlist(self.info['wordlist_name'])
+        # word_list = get_wordlist('directory', 'general')
+        word_list = self.main.db.get_wordlist(self.info['wordlist_name'])
 
         # add an empty string so that the root directory is scanned
         word_list.append('')

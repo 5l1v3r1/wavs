@@ -33,7 +33,7 @@ class SQLInjectionScanner(InjectionScannerBase):
         """ used to create database table needed to store results for this
             module. should be overwritten to meet this modules storage needs
         """
-        if not self.main.db.db_table_exists(self.info['db_table_name']):
+        if not self.main.db.table_exists(self.info['db_table_name']):
             sql_create_statement = ('CREATE TABLE IF NOT EXISTS '
                                     f'{self.info["db_table_name"]}('
                                     'id INTEGER PRIMARY KEY AUTOINCREMENT,'
@@ -42,7 +42,7 @@ class SQLInjectionScanner(InjectionScannerBase):
                                     'sql_injection_param TEXT NOT NULL,'
                                     'UNIQUE(scan_id, page, '
                                     'sql_injection_param));')
-            self.main.db.db_create_table(sql_create_statement)
+            self.main.db.create_table(sql_create_statement)
 
     def _save_scan_results(self, results):
         full_list = []
@@ -66,8 +66,8 @@ class SQLInjectionScanner(InjectionScannerBase):
         info('Searching for SQL injections...')
 
         # get the injectable params
-        params = self._load_scan_results()
-        self.attack_strings = self.main.db.db_get_wordlist(
+        params = self._get_previous_results()
+        self.attack_strings = self.main.db.get_wordlist(
             self.info['wordlist_name'])
         self.re_search_strings = self.main.db.\
             get_detect_wordlist('sql')

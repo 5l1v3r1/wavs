@@ -40,7 +40,7 @@ class ScannerTemplate:
             _create_db_table - use to create a table in the database to store results
                                should be called from __init__()
             _save_scan_results - use to save results to database
-            _load_scan_results - use to load other module results
+            _get_previous_results - use to load other module results
             _run_thread - use to implement threading, use with multiprocessing.Pool
     """
 
@@ -65,15 +65,15 @@ class ScannerTemplate:
             module. should be overwritten to meet this modules storage needs
 
             you should create a SQL statement to create the table, and pass
-            the SQL statement to db_create_table.
+            the SQL statement to create_table.
         """
-        if not self.main.db.db_table_exists(self.info['db_table_name']):
+        if not self.main.db.table_exists(self.info['db_table_name']):
             sql_create_statement = (f'CREATE TABLE IF NOT EXISTS {self.info["db_table_name"]}('
                                     f'id INTEGER PRIMARY KEY AUTOINCREMENT,'
                                     f'scan_id INTEGER NOT NULL,'
                                     f'<add columns here>,'
                                     f');')
-            self.main.db.db_create_table(sql_create_statement)
+            self.main.db.create_table(sql_create_statement)
 
     def _save_scan_results(self, results):
         """ used to save the results of the module to the database
@@ -83,7 +83,7 @@ class ScannerTemplate:
         """
         pass
 
-    def _load_scan_results(self):
+    def _get_previous_results(self):
         """ loads in results from previous scans, should be overwritten to load
             in specific results needed for this module
         """

@@ -20,11 +20,14 @@ class HTMLParser:
 
         self._create_db_table()
 
+    def generate_text(self):
+        pass
+
     def _create_db_table(self):
         """ used to create database table needed to store results for this
             module. should be overwritten to meet this modules storage needs
         """
-        if not self.main.db.db_table_exists(self.info['db_table_name']):
+        if not self.main.db.table_exists(self.info['db_table_name']):
             sql_create_statement = ('CREATE TABLE IF NOT EXISTS '
                                     f'{self.info["db_table_name"]}('
                                     'id INTEGER PRIMARY KEY AUTOINCREMENT,'
@@ -34,14 +37,14 @@ class HTMLParser:
                                     'parameter TEXT NOT NULL,'
                                     'UNIQUE(scan_id, method, '
                                     'action, parameter));')
-            self.main.db.db_create_table(sql_create_statement)
+            self.main.db.create_table(sql_create_statement)
 
-    def _load_scan_results(self):
+    def _get_previous_results(self):
         """ loads in results from previous scans, should be overwritten to load
             in specific results needed for this module
         """
         # load directories from database, results are a list of tuples
-        files_discovered = self.main.db.load_scan_results(self.main.id,
+        files_discovered = self.main.db.get_previous_results(self.main.id,
                                                           'file',
                                                           'files_discovered')
 
@@ -181,7 +184,7 @@ class HTMLParser:
         info('Parsing HTML...')
 
         # get the list of found pages
-        found_pages = self._load_scan_results()
+        found_pages = self._get_previous_results()
 
         # if there are no found pages, theres no need to run this module
         if not found_pages:

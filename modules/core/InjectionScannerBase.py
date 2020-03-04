@@ -15,6 +15,17 @@ class InjectionScannerBase:
 
     info = {}
 
+    def generate_text(self):
+        # load in text to be trained
+        text_list = self.main.db.get_wordlist(self.info['wordlist_name'])
+
+        # generate a list of words based on training text
+        generated_list = self.main.text_generator.generate(text_list)
+
+        # save generated list to be run on next scan
+        self.main.db.save_generated_text(generated_list,
+                                         self.info['wordlist_name'])
+
     def _create_db_table(self):
         """ used to create database table needed to store results for this
             module. should be overwritten to meet this modules storage needs
@@ -22,13 +33,13 @@ class InjectionScannerBase:
         # override this
         pass
 
-    def _load_scan_results(self):
+    def _get_previous_results(self):
         """ loads in results from previous scans, should be overwritten to load
             in specific results needed for this module
         """
         # load directories from database, results are a list of tuples
         inject_params = self.main.db.\
-            load_scan_results(self.main.id,
+            get_previous_results(self.main.id,
                               'method, action, parameter',
                               'parameters_discovered')
         return inject_params
@@ -92,7 +103,8 @@ class InjectionScannerBase:
                     final_url = url.replace(f'{p}=test', f'{p}={injection}')
 
                     resp = http_get_request(final_url, self.main.cookies)
-                    self._check_page_content(injection, p, page, resp.text)
+                    if self._check_page_content(injection, p, page, resp.text):
+                        break
 
         elif method == 'POST':
             # construct the url to make the request to

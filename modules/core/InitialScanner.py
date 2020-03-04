@@ -29,6 +29,9 @@ class InitialScanner:
             "numberOfThreads": 1
         }
 
+    def generate_text(self):
+        pass
+
     def _is_server_up(self):
         ''' checks if the server us up
 

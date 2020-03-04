@@ -10,6 +10,8 @@ import requests
 import requests.exceptions
 import unittest
 
+from os import system, name
+
 # aesthetics imports
 try:
     import colorama
@@ -19,6 +21,13 @@ except ModuleNotFoundError:
 
 from colorama import Fore
 colorama.init(autoreset=True)
+
+
+def clear_screen():
+    if name == 'nt':
+        _ = system('cls')
+    else:
+        _ = system('clear')
 
 
 def load_module(package_name, class_name):

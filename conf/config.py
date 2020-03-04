@@ -68,7 +68,7 @@ config = {
         {"name": "SQL Injection Scanner",
          "path": "modules/core/SQLInjectionScanner"},
         {"name": "Local File Inclusion",
-         "path": "modules/core/LFI"},
+         "path": "modules/core/LocalFileInclusion"},
         {"name": "Cross Site Scripting",
          "path": "modules/core/CrossSiteScripting"},
         {"name": "Cross Site Request Forgery",

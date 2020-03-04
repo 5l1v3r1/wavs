@@ -21,26 +21,37 @@ class FileScanner:
 
         self._create_db_table()
 
+    def generate_text(self):
+        # load in text to be trained
+        text_list = self.main.db.get_wordlist(self.info['wordlist_name'])
+
+        # generate a list of words based on training text
+        generated_list = self.main.text_generator.generate(text_list)
+
+        # save generated list to be run on next scan
+        self.main.db.save_generated_text(generated_list,
+                                         self.info['wordlist_name'])
+
     def _create_db_table(self):
         """ used to create database table needed to store results for this
             module. should be overwritten to meet this modules storage needs
         """
-        if not self.main.db.db_table_exists(self.info['db_table_name']):
+        if not self.main.db.table_exists(self.info['db_table_name']):
             sql_create_statement = (f'CREATE TABLE  IF NOT EXISTS '
                                     f'{self.info["db_table_name"]}('
                                     f'id INTEGER PRIMARY KEY AUTOINCREMENT,'
                                     f'scan_id INTEGER NOT NULL,'
                                     f'file TEXT,'
                                     f'UNIQUE(scan_id, file));')
-            self.main.db.db_create_table(sql_create_statement)
+            self.main.db.create_table(sql_create_statement)
 
-    def _load_scan_results(self):
+    def _get_previous_results(self):
         """ loads in results from previous scans, should be overwritten to load
             in specific results needed for this module
         """
         # load directories from database, results are a list of tuples
         dirs_discovered = self.main.db.\
-            load_scan_results(self.main.id,
+            get_previous_results(self.main.id,
                               'directory',
                               'directories_discovered')
 
@@ -111,8 +122,8 @@ class FileScanner:
         info('Searching for files...')
 
         # TODO: create a file wordlist
-        # word_list = db_get_wordlist('directory', 'general')
-        word_list = self.main.db.db_get_wordlist(self.info['wordlist_name'])
+        # word_list = get_wordlist('directory', 'general')
+        word_list = self.main.db.get_wordlist(self.info['wordlist_name'])
 
         # create the threads
         # need to let user change the number of threads used
@@ -121,7 +132,7 @@ class FileScanner:
         files_found = []
 
         # loop through the list of directories found by _dir_scanner
-        dirs_discovered = self._load_scan_results()
+        dirs_discovered = self._get_previous_results()
 
         # if there are no dirs found
         if not dirs_discovered:

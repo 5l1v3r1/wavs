@@ -34,9 +34,9 @@ class CrossSiteScripting(InjectionScannerBase):
             module. should be overwritten to meet this modules storage needs
 
             you should create a SQL statement to create the table, and pass
-            the SQL statement to db_create_table.
+            the SQL statement to create_table.
         """
-        if not self.main.db.db_table_exists(self.info['db_table_name']):
+        if not self.main.db.table_exists(self.info['db_table_name']):
             sql_create_statement = (f'CREATE TABLE IF NOT EXISTS '
                                     f'{self.info["db_table_name"]}('
                                     f'id INTEGER PRIMARY KEY AUTOINCREMENT,'
@@ -45,7 +45,7 @@ class CrossSiteScripting(InjectionScannerBase):
                                     f'xss_param,'
                                     f'UNIQUE(page, xss_param)'
                                     f');')
-            self.main.db.db_create_table(sql_create_statement)
+            self.main.db.create_table(sql_create_statement)
 
     def _save_scan_results(self, results):
         """ used to save the results of the module to the database
@@ -74,7 +74,7 @@ class CrossSiteScripting(InjectionScannerBase):
         info("Searching for cross site scripting...")
 
         # load in a list of lfi attach strings
-        self.attack_strings = self.main.db.db_get_wordlist(
+        self.attack_strings = self.main.db.get_wordlist(
             self.info['wordlist_name'])
 
         # the search strings will be the attack strings themselves
@@ -82,7 +82,7 @@ class CrossSiteScripting(InjectionScannerBase):
         self.re_search_strings = self.attack_strings
 
         # load in params
-        injectable_params = self._load_scan_results()
+        injectable_params = self._get_previous_results()
 
         # create thread pool
         thread_pool = Pool(self.main.options['threads'])

@@ -12,16 +12,25 @@ except ImportError:
 class TextGenerator:
     def __init__(self, main):
         self.main = main
-        self.trained_on = ''
         self.textgen = textgenrnn()
 
     def _train_on_text(self, text_list):
         epochs_to_train = self.main.options['text_gen_epochs']
-        self.textgen.train_on_texts(text_list, num_epochs=epochs_to_train)
+        try:
+            self.textgen.train_on_texts(text_list, num_epochs=epochs_to_train)
+        except:
+            pass
 
     def generate(self, text_list):
+        self._train_on_text(text_list)
+
+        generated_list = []
         temperature = self.main.options['text_generator_temp']
-        generated_list = self.textgen.generate(10,
-                                               temperature,
-                                               return_as_list=True)
+        try:
+            generated_list = self.textgen.generate(n=10,
+                                                   temperature=temperature,
+                                                   return_as_list=True)
+        except:
+            pass
+
         return generated_list

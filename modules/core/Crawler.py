@@ -1,61 +1,58 @@
+from BaseModule import BaseModule
 from bs4 import BeautifulSoup
+from tinydb import where
 
 from util_functions import success, info
 from util_functions import http_get_request
 from utils.InterceptingProxy import InterceptingProxy
 
 
-class Crawler:
-    __wavs_mod__ = True
-
+class Crawler(BaseModule):
     info = {
         "name": "Site Crawler",
         "db_table_name": "files_discovered",
+        "reportable": False,
         "desc": "Crawls through links to find new pages",
         "author": "@ryan_ritchie"
     }
 
-    def __init__(self, main, options=None):
-        self.main = main
-
-        self._create_db_table()
-
-    def generate_text(self):
-        pass
-
-    def _create_db_table(self):
-        """ used to create database table needed to store results for this
-            module. should be overwritten to meet this modules storage needs
-        """
-        if not self.main.db.table_exists(self.info['db_table_name']):
-            sql_create_statement = (f'CREATE TABLE IF NOT EXISTS '
-                                    f'{self.info["db_table_name"]}('
-                                    f'id INTEGER PRIMARY KEY AUTOINCREMENT,'
-                                    f'scan_id INTEGER NOT NULL,'
-                                    f'file TEXT,'
-                                    f'UNIQUE(scan_id, file));')
-            self.db_manager.create_table(sql_create_statement)
+    def __init__(self, main):
+        BaseModule.__init__(self, main)
 
     def _get_previous_results(self):
-        """ loads in results from previous scans, should be overwritten to load
-            in specific results needed for this module
+        """ loads in files found during the FileScanner module scan
         """
-        # load directories from database, results are a list of tuples
-        files_discovered = self.main.db.get_previous_results(self.main.id,
-                                                          'file',
-                                                          'files_discovered')
+        # import FileScanner so we can get the table name
+        try:
+            from FileScanner import FileScanner
+        except ImportError:
+            return []
 
-        # convert the list of tuples into a 1D list
-        return [f[0] for f in files_discovered]
+        # get the table name FileScanner uses to save data
+        table_name = FileScanner.info['db_table_name']
+
+        # get the instance of the table FileScanner uses
+        table = self.main.db.table(table_name)
+
+        # load in the data directories found in this scan
+        return table.get(where('scan_id') == self.main.id)['files']
 
     def _save_scan_results(self, results):
-        self.main.db.save_scan_results(self.main.id,
-                                       self.info['db_table_name'],
-                                       "file",
-                                       results)
+        table = self.main.db.table(self.info['db_table_name'])
 
-    def _run_thread(self, page):
-        pass
+        # because we are saving to same table as FileScanner, we need to
+        # update the document instead of writing a new one
+        document = table.get(where('scan_id') == self.main.id)
+
+        # we extend the files list, then pass it to a set to get rid of
+        # duplicates, then make it into a list again
+        updated_files = list(set(document['files'].extend(results)))
+
+        # update the document with new files list
+        document['files'] = updated_files
+
+        # save the document back in the table (write_back expects a list)
+        table.write_back([document])
 
     def _parse_link(self, link):
         # remove blanks and param links

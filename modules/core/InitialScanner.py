@@ -13,6 +13,7 @@ class InitialScanner:
 
     info = {
         "name": "Initial Scanner",
+        "reportable": False,
         "desc": "Does some initial scans on the web application to determine \
                  if its available, if it returns normal status codes etc",
         "author": "@ryan_ritchie"
@@ -134,3 +135,6 @@ class InitialScanner:
             exit()
 
         self._parse_robots()
+
+    def get_report_data(self):
+        return None

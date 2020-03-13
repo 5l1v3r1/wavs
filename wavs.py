@@ -336,12 +336,15 @@ class WebScanner():
             modules_to_run.append(self.modules[module_name])
 
         # loop through the modules in the scan type and call the run method
-        try:
-            for module in modules_to_run:
-                module.run_module()
-        except KeyboardInterrupt:
-            info('Exiting...')
-            exit()
+        for module in modules_to_run:
+            module.run_module()
+
+    def get_modules(self):
+        modules_to_run = []
+        for module_name in self.scan_types[self.scan_type]:
+            modules_to_run.append(self.modules[module_name])
+
+        return modules_to_run
 
 
 if __name__ == '__main__':

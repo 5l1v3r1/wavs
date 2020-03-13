@@ -1,69 +1,44 @@
+from BaseModule import BaseModule
 from multiprocessing import Pool
 
 from util_functions import http_get_request
 from util_functions import success, info
 
 
-class DirectoryScanner:
+class DirectoryScanner(BaseModule):
     """ This module is used to scan a web application for exposed directories
-    """
 
-    __wavs_mod__ = True
+
+        This module saves its results in the following template:
+            {
+                 scan_id = # the current scans id,
+                 directories = [ # directories found by scan ]
+            }
+    """
 
     info = {
         "name": "Directory Scanner",
         "db_table_name": "directories_discovered",
         "wordlist_name": "directory",
+        "reportable": False,
         "desc": "Scans a web application for directories",
         "author": "@ryan_ritchie"
     }
 
     def __init__(self, main):
-        self.main = main
-
-        self._create_db_table()
-
-    def generate_text(self):
-        # load in text to be trained
-        text_list = self.main.db.get_wordlist(self.info['wordlist_name'])
-
-        # generate a list of words based on training text
-        generated_list = self.main.text_generator.generate(text_list)
-
-        # save generated list to be run on next scan
-        self.main.db.save_generated_text(generated_list,
-                                         self.info['wordlist_name'])
-
-    def _create_db_table(self):
-        """ used to create database table needed to store results for this
-            module. should be overwritten to meet this modules storage needs
-        """
-        if not self.main.db.table_exists(self.info['db_table_name']):
-            sql_create_statement = (f'CREATE TABLE IF NOT EXISTS '
-                                    f'{self.info["db_table_name"]} ('
-                                    f'id INTEGER PRIMARY KEY AUTOINCREMENT,'
-                                    f'scan_id INTEGER NOT NULL,'
-                                    f'directory TEXT,'
-                                    f'UNIQUE(scan_id, directory));')
-            self.main.db.create_table(sql_create_statement)
-
-    def _get_previous_results(self):
-        """ loads in results from previous scans, should be overwritten to load
-            in specific results needed for this module
-        """
-
-        # dont need to load in anything for this module
-        pass
+        BaseModule.__init__(self, main)
 
     def _save_scan_results(self, results):
         """ saves the results directories found to the database
 
             @param results -        a list of directories found
         """
-        self.main.db.save_scan_results(self.main.id,
-                                       self.info['db_table_name'],
-                                       "directory",
-                                       results)
+        table = self.main.db.table(self.info['db_table_name'])
+
+        table.insert({
+            "scan_id": self.main.id,
+            "directories": results
+        })
 
         # update wordlist count for successful words
         self.main.db.update_count(results, self.info['wordlist_name'])

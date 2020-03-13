@@ -15,6 +15,7 @@ class CrossSiteScripting(InjectionScannerBase):
     info = {
         "name": "Cross Site Scripting",
         "desc": "Checks for cross site scripting vulnerabilities",
+        "reportable": True,
         "db_table_name": "xss_discovered",
         "wordlist_name": "xss_injection",
         "author": "@ryan_ritchie"
@@ -96,3 +97,15 @@ class CrossSiteScripting(InjectionScannerBase):
 
         # save the results
         self._save_scan_results(results)
+
+    def get_report_data(self):
+        """ purpose of this method is to create a report section for this
+            module that can be dropped into the final report
+        """
+
+        # get results from db
+        data = self.main.db.get_previous_results(self.main.id,
+                                                 'page,xss_param',
+                                                 self.info['xss_discovered'])
+
+        

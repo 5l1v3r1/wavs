@@ -15,6 +15,7 @@ class LocalFileInclusion(InjectionScannerBase):
     info = {
         "name": "Local File Inclusion",
         "desc": "Checks for local file inclusion vulnerability",
+        "reportable": True,
         "db_table_name": "lfi_discovered",
         "wordlist_name": "lfi_injection",
         "author": "@ryan_ritchie"
@@ -95,3 +96,6 @@ class LocalFileInclusion(InjectionScannerBase):
 
         # save the results
         self._save_scan_results(results)
+
+    def get_report_data(self):
+        return None

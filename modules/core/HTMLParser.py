@@ -11,6 +11,7 @@ class HTMLParser:
     info = {
         "name": "HTML Parser",
         "db_table_name": "parameters_discovered",
+        "reportable": False,
         "desc": "Takes a webpage and parses the HTML to find params to inject",
         "author": "@ryan_ritchie"
     }
@@ -212,3 +213,6 @@ class HTMLParser:
                         f'{" ".join(params["params"])}', prepend='  ')
 
         self._save_scan_results(final)
+
+    def get_report_data(self):
+        return None

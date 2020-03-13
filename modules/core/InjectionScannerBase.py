@@ -129,3 +129,6 @@ class InjectionScannerBase:
         # override this
 
         pass
+
+    def get_report_data(self):
+        return None

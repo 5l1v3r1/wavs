@@ -20,6 +20,7 @@ class SQLInjectionScanner(InjectionScannerBase):
     info = {
         "name": "SQL Injection Scanner",
         "desc": "Scan the web application for SQL injections",
+        "reportable": True,
         "db_table_name": "sql_injections",
         "wordlist_name": "sql_injection",
         "author": "@ryan_ritchie"
@@ -80,3 +81,6 @@ class SQLInjectionScanner(InjectionScannerBase):
 
         thread_pool.close()
         thread_pool.join()
+
+    def get_report_data(self):
+        return None

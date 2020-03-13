@@ -1,70 +1,63 @@
+from BaseModule import BaseModule
 from functools import partial
 from multiprocessing import Pool
+from tinydb import where
 
 from util_functions import http_get_request
 from util_functions import success, info
 
 
-class FileScanner:
-    __wavs_mod__ = True
-
+class FileScanner(BaseModule):
+    """
+        This module saves its results in the following template:
+            {
+                 scan_id = # the current scans id,
+                 files = [ # files found by scan ]
+            }
+    """
     info = {
         "name": "File Scanner",
         "db_table_name": "files_discovered",
         "wordlist_name": "file",
+        "reportable": False,
         "desc": "Scans for files once ",
         "author": "@ryan_ritchie"
     }
 
-    def __init__(self, main, options=None):
-        self.main = main
-
-        self._create_db_table()
-
-    def generate_text(self):
-        # load in text to be trained
-        text_list = self.main.db.get_wordlist(self.info['wordlist_name'])
-
-        # generate a list of words based on training text
-        generated_list = self.main.text_generator.generate(text_list)
-
-        # save generated list to be run on next scan
-        self.main.db.save_generated_text(generated_list,
-                                         self.info['wordlist_name'])
-
-    def _create_db_table(self):
-        """ used to create database table needed to store results for this
-            module. should be overwritten to meet this modules storage needs
-        """
-        if not self.main.db.table_exists(self.info['db_table_name']):
-            sql_create_statement = (f'CREATE TABLE  IF NOT EXISTS '
-                                    f'{self.info["db_table_name"]}('
-                                    f'id INTEGER PRIMARY KEY AUTOINCREMENT,'
-                                    f'scan_id INTEGER NOT NULL,'
-                                    f'file TEXT,'
-                                    f'UNIQUE(scan_id, file));')
-            self.main.db.create_table(sql_create_statement)
+    def __init__(self, main):
+        BaseModule.__init__(self, main)
 
     def _get_previous_results(self):
-        """ loads in results from previous scans, should be overwritten to load
-            in specific results needed for this module
+        """ this module uses results from DirectoryScanner module, it uses
+            the directories found by that module, and searches for files
+            within those directories. If no directories were found, or
+            DirectoryScanner was not run, this module will search the base
+            directory '/'.
         """
-        # load directories from database, results are a list of tuples
-        dirs_discovered = self.main.db.\
-            get_previous_results(self.main.id,
-                              'directory',
-                              'directories_discovered')
+        # import DirectoryScanner so we can get the table name
+        try:
+            from DirectoryScanner import DirectoryScanner
+        except ImportError:
+            return []
 
-        # convert the list of tuples into a 1D list
-        return [d[0] for d in dirs_discovered]
+        # get the table name DirectoryScanner uses to save data
+        table_name = DirectoryScanner.info['db_table_name']
+
+        # get the instance of the table DirectoryScanner uses
+        table = self.main.db.table(table_name)
+
+        # load in the data directories found in this scan
+        return table.get(where('scan_id') == self.main.id)['directories']
 
     def _save_scan_results(self, results):
-        """ dont have to worry about inserting id, scan_id
+        """ saves the files found during the scan to the database
         """
-        self.main.db.save_scan_results(self.main.id,
-                                       self.info['db_table_name'],
-                                       "file",
-                                       results)
+        table = self.main.db.table(self.info['db_table_name'])
+
+        table.insert({
+            "scan_id": self.main.id,
+            "files": results
+        })
 
         # update wordlist count for successful words
         self.main.db.update_count(results, self.info['wordlist_name'])
@@ -153,3 +146,6 @@ class FileScanner:
         thread_pool.join()
 
         self._save_scan_results(files_found)
+
+    def get_report_data(self):
+        return None

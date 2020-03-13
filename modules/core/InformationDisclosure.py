@@ -11,6 +11,7 @@ class InformationDisclosure:
     info = {
         "name": "Information Disclosure",
         "db_table_name": "info_disc_discovered",
+        "reportable": True,
         "wordlist_name": "info_disclosure",
         "desc": "Scans for files that should be accessible",
         "author": "@ryan_ritchie"
@@ -154,3 +155,6 @@ class InformationDisclosure:
         thread_pool.join()
 
         self._save_scan_results(files_found)
+
+    def get_report_data(self):
+        return None

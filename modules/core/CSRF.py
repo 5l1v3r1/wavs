@@ -8,6 +8,7 @@ class CSRF:
 
     info = {
         "name": "Cross Site Request Forgery",
+        "reportable": True,
         "db_table_name": "csrf_discovered",
         "wordlist_name": "csrf",
         "desc": "Searches for the lack of anti-csrf tokens in forms",
@@ -118,3 +119,6 @@ class CSRF:
         # remove any empty results
         csrf_discovered = [csrf for csrf in csrf_discovered if csrf]
         self._save_scan_results(csrf_discovered)
+
+    def get_report_data(self):
+        return None

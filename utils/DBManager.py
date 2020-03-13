@@ -3,6 +3,7 @@ import os.path
 from sqlite3 import Error
 from datetime import datetime
 from util_functions import warning
+from tinydb import TinyDB, Query
 # TODO: use prepared statements for SQL
 
 
@@ -31,15 +32,15 @@ class DBManager:
             exit()
 
         # if the scans database doesn't exist then create it
-        if not os.path.exists(self.db_paths['scan_results']):
-            sql_create_statement = ('CREATE TABLE IF NOT EXISTS '
-                                    'scans('
-                                    'id INTEGER PRIMARY KEY AUTOINCREMENT,'
-                                    'timestamp TEXT NOT NULL,'
-                                    'host TEXT NOT NULL,'
-                                    'port INTEGER NOT NULL'
-                                    ');')
-            self.create_table(sql_create_statement)
+        self.scan_db = TinyDB(self.db_paths['scan_results'])
+            # sql_create_statement = ('CREATE TABLE IF NOT EXISTS '
+            #                         'scans('
+            #                         'id INTEGER PRIMARY KEY AUTOINCREMENT,'
+            #                         'timestamp TEXT NOT NULL,'
+            #                         'host TEXT NOT NULL,'
+            #                         'port INTEGER NOT NULL'
+            #                         ');')
+            # self.create_table(sql_create_statement)
 
     def get_connection(self, database_file):
         """ create the database connection to the sqlite database
@@ -214,27 +215,19 @@ class DBManager:
 
             @param:     scan_object         - a WebScanner instance
         """
-        conn = self.get_connection(self.db_paths['scan_results'])
 
         # get the current time
         scan_start = str(datetime.now())
 
-        # sql query to insert scan data into scans table
-        sql_new_scan = (f"INSERT INTO scans(timestamp, host, port)"
-                        f" VALUES('{scan_start}',"
-                        f"'{scan_object.host}',"
-                        f"'{scan_object.port}')")
+        # insert initial scan data into db, insert returns document id
+        scans_table = self.scan_db.table('scans')
+        id = scans_table.insert({
+            'timestamp': scan_start,
+            'host': scan_object.host,
+            'port': scan_object.port
+        })
 
-        # execute above query
-        self.execute_statement(conn, sql_new_scan)
-
-        # get the new scan id by ordering the scans descending, this means
-        # the first result will be the scan we just inserted into the db
-        sql_get_id = f"SELECT id FROM scans ORDER BY id DESC LIMIT 0, 1"
-        result = self.get_data(conn, sql_get_id)
-
-        # result is a list containing a tuple, we only want to return the id
-        return result[0][0]
+        return id
 
     def save_scan_results(self, scan_id, table_name, table_columns, results):
         """ save the results of a scan module to the scan results db
@@ -246,7 +239,9 @@ class DBManager:
             @return:    None
         """
 
-        conn = self.get_connection(self.db_paths['scan_results'])
+        # conn = self.get_connection(self.db_paths['scan_results'])
+
+        table = self.scan_db.table(table_name)
 
         # loop through each result
         for row in results:
@@ -258,6 +253,8 @@ class DBManager:
                 val_string = ','.join(val_list)
             else:
                 val_string = f'"{row}"'
+
+
 
             # construct the sql statement
             sql_save_results = (f'INSERT OR IGNORE '

@@ -13,11 +13,11 @@ import argparse
 from conf import config
 from time import sleep
 from utils.DBManager import DBManager
+from utils.ReportGenerator import ReportGenerator
 from util_functions import clear_screen
 from util_functions import load_module
 from util_functions import cookie_parse
 from util_functions import info, warning, banner_colour
-
 
 ########################
 # argument parsing     #
@@ -98,6 +98,8 @@ class WebScanner():
         self.modules = []
         self.scan_types = []
 
+        self.report_gen = ReportGenerator(self)
+
         self._parse_cmd_line_args(arg_parse)
         self._init_database()
         self._load_config()
@@ -120,6 +122,7 @@ class WebScanner():
             info('Completed text generation')
         else:
             self.run_modules()
+            self.report_gen.generate_txt()
             self.db.remove_generated_text()
 
     def _load_config(self):
@@ -213,7 +216,7 @@ class WebScanner():
                 # otherwise make the single path into a list
                 self.restrict_paths = [arg_parse.restrict_paths]
         else:
-            self.restrict_paths = None
+            self.restrict_paths = []
 
         # add success codes passed in from command line
         if arg_parse.add_success_codes:
@@ -286,7 +289,8 @@ class WebScanner():
             temp_module = temp_module(self)
 
             # save the module instance by its name in a dict
-            modules_loaded[temp_module.info["name"]] = temp_module
+            if hasattr(temp_module, "info"):
+                modules_loaded[temp_module.info["name"]] = temp_module
 
         # return all the instances of loaded modules
         return modules_loaded

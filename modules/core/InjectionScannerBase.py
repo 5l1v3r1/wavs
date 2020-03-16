@@ -1,3 +1,4 @@
+from modules.core.BaseModule import BaseModule
 from util_functions import success
 from util_functions import http_get_request, http_post_request
 
@@ -5,48 +6,31 @@ from util_functions import http_get_request, http_post_request
 #       of those results graciously
 
 
-class InjectionScannerBase:
+class InjectionScannerBase(BaseModule):
     """ this is a base class used to provide common functionality to all
         injection scanner modules. should be inherited.
     """
 
-    # should not be imported directly, only inherited
-    # __wavs_mod__ = True
+    def __init__(self, main):
+        BaseModule.__init__(self, main)
 
-    info = {}
+    def _save_scan_results(self, results, update_count=True):
+        """ used to save the results of the module to the database
 
-    def generate_text(self):
-        # load in text to be trained
-        text_list = self.main.db.get_wordlist(self.info['wordlist_name'])
-
-        # generate a list of words based on training text
-        generated_list = self.main.text_generator.generate(text_list)
-
-        # save generated list to be run on next scan
-        self.main.db.save_generated_text(generated_list,
-                                         self.info['wordlist_name'])
-
-    def _create_db_table(self):
-        """ used to create database table needed to store results for this
-            module. should be overwritten to meet this modules storage needs
+            @param: results -       a list of the results from the module,
+                                    should be a list of text
         """
-        # override this
-        pass
+        # get the successful injections from results
+        injections = [(p_dict['payload']) for p_dict in results]
 
-    def _get_previous_results(self):
-        """ loads in results from previous scans, should be overwritten to load
-            in specific results needed for this module
-        """
-        # load directories from database, results are a list of tuples
-        inject_params = self.main.db.\
-            get_previous_results(self.main.id,
-                              'method, action, parameter',
-                              'parameters_discovered')
-        return inject_params
+        table = self.main.db.get_scan_db().table(self.info['db_table_name'])
+        table.insert({
+            "scan_id": self.main.id,
+            "results": results
+        })
 
-    def _save_scan_results(self, results):
-        # override this
-        pass
+        if update_count:
+            self.main.db.update_count(injections, self.info['wordlist_name'])
 
     def _construct_get_url(self, page, params):
         url = f'{self.main.get_host_url_base()}/{page}?'
@@ -68,7 +52,7 @@ class InjectionScannerBase:
 
         return param_dict
 
-    def _check_page_content(self, injection, param, page, page_text):
+    def _check_page_content(self, method, injection, param, page, page_text):
         assert(hasattr(self, "re_search_strings"))
 
         search_strings = self.re_search_strings
@@ -78,19 +62,23 @@ class InjectionScannerBase:
                 if self.main.options['verbose']:
                     success(f'Vulnerable parameter: {page}/{param} ({injection})',
                             prepend='  ')
-                self.injectable_params.append((page, param, injection))
+                # self.injectable_params.append((page, param, injection))
+                self.injectable_params.append({'method': method,
+                                               'page': page,
+                                               'parameter': param,
+                                               'payload': injection})
 
             return True
 
         return False
 
     def _run_thread(self, param):
-        method = param[0]
-        page = param[1]
+        method = param['method']
+        page = param['action']
 
         self.injections = []
         self.injectable_params = []
-        inject_params = param[2].split(', ')
+        inject_params = param['params']
 
         assert(hasattr(self, "attack_strings"))
         attack_strings = self.attack_strings
@@ -103,7 +91,7 @@ class InjectionScannerBase:
                     final_url = url.replace(f'{p}=test', f'{p}={injection}')
 
                     resp = http_get_request(final_url, self.main.cookies)
-                    if self._check_page_content(injection, p, page, resp.text):
+                    if self._check_page_content(method, injection, p, page, resp.text):
                         break
 
         elif method == 'POST':
@@ -117,18 +105,7 @@ class InjectionScannerBase:
                     params[p] = injection
 
                     resp = http_post_request(url, params, self.main.cookies)
-                    if self._check_page_content(injection, p, page, resp.text):
+                    if self._check_page_content(method, injection, p, page, resp.text):
                         break
 
         return self.injectable_params
-
-    def run_module(self):
-        """
-            need to set self.attack_strings and self.re_search_strings
-        """
-        # override this
-
-        pass
-
-    def get_report_data(self):
-        return None

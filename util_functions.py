@@ -38,7 +38,7 @@ def load_module(package_name, class_name):
             obj = getattr(module, _class)
 
             try:
-                if obj.__wavs_mod__:
+                if obj.__name__ == class_name:
                     return obj
 
             except AttributeError:

@@ -1,13 +1,13 @@
+import concurrent.futures
 from multiprocessing import Pool
 from bs4 import BeautifulSoup
+from modules.core.BaseModule import BaseModule
 
-from util_functions import success, info
+from util_functions import success, info, warning
 from util_functions import http_get_request
 
 
-class HTMLParser:
-    __wavs_mod__ = True
-
+class HTMLParser(BaseModule):
     info = {
         "name": "HTML Parser",
         "db_table_name": "parameters_discovered",
@@ -16,53 +16,8 @@ class HTMLParser:
         "author": "@ryan_ritchie"
     }
 
-    def __init__(self, main, options=None):
-        self.main = main
-
-        self._create_db_table()
-
-    def generate_text(self):
-        pass
-
-    def _create_db_table(self):
-        """ used to create database table needed to store results for this
-            module. should be overwritten to meet this modules storage needs
-        """
-        if not self.main.db.table_exists(self.info['db_table_name']):
-            sql_create_statement = ('CREATE TABLE IF NOT EXISTS '
-                                    f'{self.info["db_table_name"]}('
-                                    'id INTEGER PRIMARY KEY AUTOINCREMENT,'
-                                    'scan_id INTEGER NOT NULL,'
-                                    'method TEXT NOT NULL,'
-                                    'action TEXT NOT NULL,'
-                                    'parameter TEXT NOT NULL,'
-                                    'UNIQUE(scan_id, method, '
-                                    'action, parameter));')
-            self.main.db.create_table(sql_create_statement)
-
-    def _get_previous_results(self):
-        """ loads in results from previous scans, should be overwritten to load
-            in specific results needed for this module
-        """
-        # load directories from database, results are a list of tuples
-        files_discovered = self.main.db.get_previous_results(self.main.id,
-                                                          'file',
-                                                          'files_discovered')
-
-        # convert the list of tuples into a 1D list
-        return [f[0] for f in files_discovered]
-
-    def _save_scan_results(self, results):
-        full_list = []
-        for r in results:
-            full_list.append((r['method'],
-                              r['action'],
-                              ', '.join(r['params'])))
-
-        self.main.db.save_scan_results(self.main.id,
-                                       self.info['db_table_name'],
-                                       "method, action, parameter",
-                                       full_list)
+    def __init__(self, main):
+        BaseModule.__init__(self, main)
 
     def _extract_link_params(self, link, directory_path):
         assert('?' in link)
@@ -185,23 +140,19 @@ class HTMLParser:
         info('Parsing HTML...')
 
         # get the list of found pages
-        found_pages = self._get_previous_results()
+        found_pages = self._get_previous_results('FileScanner')
 
         # if there are no found pages, theres no need to run this module
         if not found_pages:
             return
 
         # pass the found pages to threads
-        thread_pool = Pool(self.main.options['threads'])
-        found_params = thread_pool.map(self._run_thread, found_pages)
-
-        # close the threads
-        thread_pool.close()
-        thread_pool.join()
+        with concurrent.futures.ProcessPoolExecutor() as executor:
+            results = list(executor.map(self._run_thread, found_pages))
 
         # clean up the results from the threads
         final = []
-        found_params = [final.extend(p) for p in found_params if p]
+        _ = [final.extend(p) for p in results if p]
         final = list(filter(None, final))
 
         # remove duplicate found parameters
@@ -212,7 +163,4 @@ class HTMLParser:
                 success(f'Found params: {params["action"]}/'
                         f'{" ".join(params["params"])}', prepend='  ')
 
-        self._save_scan_results(final)
-
-    def get_report_data(self):
-        return None
+        self._save_scan_results(final, update_count=False)

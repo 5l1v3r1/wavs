@@ -1,10 +1,8 @@
-from BaseModule import BaseModule
-from functools import partial
-from multiprocessing import Pool
-from tinydb import where
+import concurrent.futures
+from modules.core.BaseModule import BaseModule
 
 from util_functions import http_get_request
-from util_functions import success, info
+from util_functions import success, info, warning
 
 
 class FileScanner(BaseModule):
@@ -27,42 +25,43 @@ class FileScanner(BaseModule):
     def __init__(self, main):
         BaseModule.__init__(self, main)
 
-    def _get_previous_results(self):
-        """ this module uses results from DirectoryScanner module, it uses
-            the directories found by that module, and searches for files
-            within those directories. If no directories were found, or
-            DirectoryScanner was not run, this module will search the base
-            directory '/'.
+    def generate_full_wordlist(self):
+        """ generate a wordlist from the list of directories found, filenames
+            from the files wordlist and extensions from config
+
+            @return:    (list) - list of file paths in format:
+                                    {directory}/{file}.{extension}
         """
-        # import DirectoryScanner so we can get the table name
-        try:
-            from DirectoryScanner import DirectoryScanner
-        except ImportError:
-            return []
 
-        # get the table name DirectoryScanner uses to save data
-        table_name = DirectoryScanner.info['db_table_name']
+        # get the main file wordlist
+        filename_list = self.main.db.get_wordlist(self.info['wordlist_name'])
 
-        # get the instance of the table DirectoryScanner uses
-        table = self.main.db.table(table_name)
+        # get the list of directories discovered
+        dirs_discovered = self._get_previous_results('DirectoryScanner')
 
-        # load in the data directories found in this scan
-        return table.get(where('scan_id') == self.main.id)['directories']
+        # if there are no dirs found
+        if not dirs_discovered:
+            dirs_discovered.append('')
 
-    def _save_scan_results(self, results):
-        """ saves the files found during the scan to the database
-        """
-        table = self.main.db.table(self.info['db_table_name'])
+        exts = self.main.file_extensions
 
-        table.insert({
-            "scan_id": self.main.id,
-            "files": results
-        })
+        final_list = []
+        for directory in dirs_discovered:
+            for file in filename_list:
+                for extension in exts:
+                    if directory != '':
+                        path = f'{directory}/{file}.{extension}'
+                    elif directory == '':
+                        # extension already has . in it
+                        path = f'{file}{extension}'
 
-        # update wordlist count for successful words
-        self.main.db.update_count(results, self.info['wordlist_name'])
+                    # we dont want to visit restricted paths
+                    if path not in self.main.restrict_paths:
+                        final_list.append(path)
 
-    def _run_thread(self, directory, word):
+        return final_list
+
+    def _run_thread(self, path):
         """ makes a HTTP GET request to check if a file exists. to be used as
             a thread.
 
@@ -74,33 +73,16 @@ class FileScanner(BaseModule):
 
         # construct the url to be used in the GET request
         url = f'{self.main.get_host_url_base()}/'
-        if directory:
-            url += (directory + '/')
 
-        # loop through file extensions to be searched for
-        for ext in self.main.file_extensions:
-            # check we dont go to restricted path
-            if self.main.restrict_paths:
-                if f'{word}{ext}' in self.main.restrict_paths:
-                    continue
+        # make the GET request for the file
+        resp = http_get_request(url + f'{path}', self.main.cookies)
 
-            # make the GET request for the file
-            resp = http_get_request(url + f'{word}{ext}', self.main.cookies)
+        # check if the response code is a success code
+        if (resp.status_code in self.main.success_codes):
+            if self.main.options['verbose']:
+                success(path, prepend='  ')
 
-            # check if the response code is a success code
-            if (resp.status_code in self.main.success_codes):
-                # if the directory is not an empty string i.e. if it is not
-                # searching the root directory
-                found_path = ''
-                if directory:
-                    found_path = f'{directory}/{word}{ext}'
-                else:
-                    found_path = f'{word}{ext}'
-
-                if self.main.options['verbose']:
-                    success(found_path, prepend='  ')
-
-                found_files.append(found_path)
+            found_files.append(path)
 
         # only return a list if files were actually found
         if found_files:
@@ -114,38 +96,16 @@ class FileScanner(BaseModule):
         """
         info('Searching for files...')
 
-        # TODO: create a file wordlist
-        # word_list = get_wordlist('directory', 'general')
-        word_list = self.main.db.get_wordlist(self.info['wordlist_name'])
-
-        # create the threads
-        # need to let user change the number of threads used
-        thread_pool = Pool(self.main.options['threads'])
-
         files_found = []
 
-        # loop through the list of directories found by _dir_scanner
-        dirs_discovered = self._get_previous_results()
-
-        # if there are no dirs found
-        if not dirs_discovered:
-            dirs_discovered.append('')
-
-        for directory in dirs_discovered:
-            # use partial to allow more parameters passed to map
-            func = partial(self._run_thread, directory)
-
-            # use threads to scan for files
-            files_found += thread_pool.map(func, word_list)
+        # wordlist = self.generate_full_wordlist()
+        # debug wordlist
+        wordlist = ['index.php', 'contact.php', 'comments.php', 'about.html']
+        with concurrent.futures.ProcessPoolExecutor() as executor:
+            files_found += list(executor.map(self._run_thread, wordlist))
 
         # remove None results
-        files_found = [file for file in files_found if file is not None]
+        files_found = list(filter(None, files_found))
         files_found = [file for sublist in files_found for file in sublist]
 
-        thread_pool.close()
-        thread_pool.join()
-
-        self._save_scan_results(files_found)
-
-    def get_report_data(self):
-        return None
+        self._save_scan_results(files_found, update_count=False)

@@ -3,24 +3,24 @@ import requests.exceptions
 import random
 import string
 
+from modules.core.BaseModule import BaseModule
 from datetime import datetime
 from util_functions import success, warning, info
 from util_functions import http_get_request
 
 
-class InitialScanner:
-    __wavs_mod__ = True
-
+class InitialScanner(BaseModule):
     info = {
-        "name": "Initial Scanner",
-        "reportable": False,
-        "desc": "Does some initial scans on the web application to determine \
-                 if its available, if it returns normal status codes etc",
-        "author": "@ryan_ritchie"
+        "name":         "Initial Scanner",
+        "reportable":   False,
+        "desc":         "Does some initial scans on the web application to \
+                         determine if its available, if it returns normal \
+                         status codes etc",
+        "author":        "@ryan_ritchie"
     }
 
-    def __init__(self, main, options=None):
-        self.main = main
+    def __init__(self, main):
+        BaseModule.__init__(self, main)
 
         # seed the random number generator
         random.seed(datetime.now())
@@ -29,9 +29,6 @@ class InitialScanner:
             # the number of threads the directory scanner should use
             "numberOfThreads": 1
         }
-
-    def generate_text(self):
-        pass
 
     def _is_server_up(self):
         ''' checks if the server us up
@@ -107,16 +104,20 @@ class InitialScanner:
                         file_paths.append(path)
 
         if dir_paths:
-            self.main.db.save_scan_results(self.main.id,
-                                           "directories_discovered",
-                                           "directory",
-                                           dir_paths)
+            table = self.main.db.get_scan_db().table('directories_discovered')
+
+            table.insert({
+                "scan_id": self.main.id,
+                "results": dir_paths
+            })
 
         if file_paths:
-            self.main.db.save_scan_results(self.main.id,
-                                           "files_discovered",
-                                           "file",
-                                           file_paths)
+            table = self.main.db.get_scan_db().table('files_discovered')
+
+            table.insert({
+                "scan_id": self.main.id,
+                "results": file_paths
+            })
 
     def _run_thread(self):
         pass
@@ -135,6 +136,3 @@ class InitialScanner:
             exit()
 
         self._parse_robots()
-
-    def get_report_data(self):
-        return None

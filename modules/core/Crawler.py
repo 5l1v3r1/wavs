@@ -1,6 +1,5 @@
-from BaseModule import BaseModule
+from modules.core.BaseModule import BaseModule
 from bs4 import BeautifulSoup
-from tinydb import where
 
 from util_functions import success, info
 from util_functions import http_get_request
@@ -18,41 +17,6 @@ class Crawler(BaseModule):
 
     def __init__(self, main):
         BaseModule.__init__(self, main)
-
-    def _get_previous_results(self):
-        """ loads in files found during the FileScanner module scan
-        """
-        # import FileScanner so we can get the table name
-        try:
-            from FileScanner import FileScanner
-        except ImportError:
-            return []
-
-        # get the table name FileScanner uses to save data
-        table_name = FileScanner.info['db_table_name']
-
-        # get the instance of the table FileScanner uses
-        table = self.main.db.table(table_name)
-
-        # load in the data directories found in this scan
-        return table.get(where('scan_id') == self.main.id)['files']
-
-    def _save_scan_results(self, results):
-        table = self.main.db.table(self.info['db_table_name'])
-
-        # because we are saving to same table as FileScanner, we need to
-        # update the document instead of writing a new one
-        document = table.get(where('scan_id') == self.main.id)
-
-        # we extend the files list, then pass it to a set to get rid of
-        # duplicates, then make it into a list again
-        updated_files = list(set(document['files'].extend(results)))
-
-        # update the document with new files list
-        document['files'] = updated_files
-
-        # save the document back in the table (write_back expects a list)
-        table.write_back([document])
 
     def _parse_link(self, link):
         # remove blanks and param links
@@ -116,7 +80,7 @@ class Crawler(BaseModule):
         info('Crawling links...')
 
         # get found pages
-        self.found_pages = self._get_previous_results()
+        self.found_pages = self._get_previous_results('FileScanner')
 
         if self.main.options['manual_crawl']:
             self.manual_found_pages = self.found_pages
@@ -141,4 +105,4 @@ class Crawler(BaseModule):
                         success(f'Found page: {link}', prepend='  ')
                         loop_pages.append(link)
 
-            self._save_scan_results(loop_pages)
+            self._save_scan_results(loop_pages, update_count=False)

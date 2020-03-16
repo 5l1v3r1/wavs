@@ -1,5 +1,5 @@
-from BaseModule import BaseModule
-from multiprocessing import Pool
+from modules.core.BaseModule import BaseModule
+import concurrent.futures
 
 from util_functions import http_get_request
 from util_functions import success, info
@@ -28,21 +28,6 @@ class DirectoryScanner(BaseModule):
     def __init__(self, main):
         BaseModule.__init__(self, main)
 
-    def _save_scan_results(self, results):
-        """ saves the results directories found to the database
-
-            @param results -        a list of directories found
-        """
-        table = self.main.db.table(self.info['db_table_name'])
-
-        table.insert({
-            "scan_id": self.main.id,
-            "directories": results
-        })
-
-        # update wordlist count for successful words
-        self.main.db.update_count(results, self.info['wordlist_name'])
-
     def _run_thread(self, word):
         """ makes a HTTP GET request to check if a directory exists. to be used
             as a thread.
@@ -67,28 +52,24 @@ class DirectoryScanner(BaseModule):
     def run_module(self):
         info('Searching for directories...')
 
-        # create the threads
-        thread_pool = Pool(self.main.options['threads'])
-
         # load in the wordlist from database
-        # word_list = get_wordlist('directory', 'general')
-        word_list = self.main.db.get_wordlist(self.info['wordlist_name'])
+        # word_list = self.main.db.get_wordlist(self.info['wordlist_name'])
+
+        # debug word list
+        word_list = ['', 'css', 'data', 'images', 'js']
 
         # add an empty string so that the root directory is scanned
-        word_list.append('')
+        # word_list.append('')
 
         # map the wordlist to threads with _thread_scan method
-        directories_found = thread_pool.map(self._run_thread, word_list)
+        with concurrent.futures.ProcessPoolExecutor() as executor:
+            directories_found = list(executor.map(self._run_thread, word_list))
 
         # remove None results
         directories_found = [directory
                              for directory
                              in directories_found
                              if directory is not None]
-
-        # close the threads
-        thread_pool.close()
-        thread_pool.join()
 
         # save the directories found to the database
         self._save_scan_results(directories_found)

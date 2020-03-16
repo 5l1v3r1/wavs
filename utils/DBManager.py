@@ -32,15 +32,29 @@ class DBManager:
             exit()
 
         # if the scans database doesn't exist then create it
-        self.scan_db = TinyDB(self.db_paths['scan_results'])
-            # sql_create_statement = ('CREATE TABLE IF NOT EXISTS '
-            #                         'scans('
-            #                         'id INTEGER PRIMARY KEY AUTOINCREMENT,'
-            #                         'timestamp TEXT NOT NULL,'
-            #                         'host TEXT NOT NULL,'
-            #                         'port INTEGER NOT NULL'
-            #                         ');')
-            # self.create_table(sql_create_statement)
+        # self.scan_db = TinyDB(self.db_paths['scan_results'])
+
+    def get_scan_db(self):
+        return TinyDB(self.db_paths['scan_results'])
+
+    def save_new_scan(self, scan_object):
+        """ called each time a new scan is run, saves details about the scan
+            and returns a unique scan id to identify the scan
+            @param:     scan_object         - a WebScanner instance
+        """
+
+        # get the current time
+        scan_start = str(datetime.now())
+
+        # insert initial scan data into db, insert returns document id
+        scans_table = self.get_scan_db().table('scans')
+        id = scans_table.insert({
+            'timestamp': scan_start,
+            'host': scan_object.host,
+            'port': scan_object.port
+        })
+
+        return id
 
     def get_connection(self, database_file):
         """ create the database connection to the sqlite database
@@ -110,8 +124,8 @@ class DBManager:
                 return True
 
             return False
-        except Error as e:
-            print(e)
+        except Error:
+            return False
 
     def get_data(self, connection, sql_select_statement):
         """ retrieves data from a database connection and returns it
@@ -208,85 +222,6 @@ class DBManager:
         # save changes to the database
         conn.commit()
         conn.close()
-
-    def save_new_scan(self, scan_object):
-        """ called each time a new scan is run, saves details about the scan
-            and returns a unique scan id to identify the scan
-
-            @param:     scan_object         - a WebScanner instance
-        """
-
-        # get the current time
-        scan_start = str(datetime.now())
-
-        # insert initial scan data into db, insert returns document id
-        scans_table = self.scan_db.table('scans')
-        id = scans_table.insert({
-            'timestamp': scan_start,
-            'host': scan_object.host,
-            'port': scan_object.port
-        })
-
-        return id
-
-    def save_scan_results(self, scan_id, table_name, table_columns, results):
-        """ save the results of a scan module to the scan results db
-
-            @param:     scan_id         - id of the current scan
-            @param:     table_name      - table name to save the results in
-            @param:     table_columns   - column names to save results to
-            @param:     results         - list of scan module results
-            @return:    None
-        """
-
-        # conn = self.get_connection(self.db_paths['scan_results'])
-
-        table = self.scan_db.table(table_name)
-
-        # loop through each result
-        for row in results:
-            # give each string in row quotation marks
-            if isinstance(row, (list, tuple)):
-                val_list = [f'"{r}"' for r in row]
-
-                # construct a value string, comma delimited
-                val_string = ','.join(val_list)
-            else:
-                val_string = f'"{row}"'
-
-
-
-            # construct the sql statement
-            sql_save_results = (f'INSERT OR IGNORE '
-                                f'INTO {table_name} (scan_id,{table_columns}) '
-                                f'VALUES ({scan_id},{val_string})')
-            self.execute_statement(conn, sql_save_results)
-
-        conn.close()
-
-    def get_previous_results(self, scan_id, column_names, table_name):
-        ''' load scan results from previous modules, from the database.
-
-            @param:     scan_id (int)           - the scan id to be loaded
-            @param:     column_names (string)   - the column names to load.
-                                                  columns delimited with commas
-            @param:     scan_name (string)      - the name of the scan module
-
-            @return:    (list) the scan results
-        '''
-        conn = self.get_connection(self.db_paths['scan_results'])
-
-        # the SQL query to get the scan results
-        sql_load_scan = (f'SELECT {column_names} '
-                         f'FROM {table_name} '
-                         f'WHERE scan_id={scan_id}')
-
-        # execute the query and get results
-        result = self.get_data(conn, sql_load_scan)
-
-        conn.close()
-
-        return result
 
     def add_if_not_exist(self, cursor, payload, type):
         """ adds a payload to the wordlist table if the payload does not exist

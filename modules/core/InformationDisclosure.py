@@ -1,79 +1,62 @@
+import concurrent.futures
 from functools import partial
 from multiprocessing import Pool
+from modules.core.BaseModule import BaseModule
 
 from util_functions import http_get_request
-from util_functions import success, info
+from util_functions import success, info, warning
 
 
-class InformationDisclosure:
-    __wavs_mod__ = True
-
+class InformationDisclosure(BaseModule):
     info = {
-        "name": "Information Disclosure",
-        "db_table_name": "info_disc_discovered",
-        "reportable": True,
-        "wordlist_name": "info_disclosure",
-        "desc": "Scans for files that should be accessible",
-        "author": "@ryan_ritchie"
+        "name":             "Information Disclosure",
+        "db_table_name":    "info_disc_discovered",
+        "reportable":       True,
+        "wordlist_name":    "info_disclosure",
+        "desc":             "Scans for files that should not be accessible",
+        "author":           "@ryan_ritchie"
     }
 
-    def __init__(self, main, options=None):
-        self.main = main
+    def __init__(self, main):
+        BaseModule.__init__(self, main)
 
-        self._create_db_table()
+    def generate_full_wordlist(self):
+        """ generate a wordlist from the list of directories found, filenames
+            from the files wordlist and extensions from config
 
-    def generate_text(self):
-        # load in text to be trained
-        text_list = self.main.db.get_wordlist(self.info['wordlist_name'])
-
-        # generate a list of words based on training text
-        generated_list = self.main.text_generator.generate(text_list)
-
-        # save generated list to be run on next scan
-        self.main.db.save_generated_text(generated_list,
-                                         self.info['wordlist_name'])
-
-    def _create_db_table(self):
-        """ used to create database table needed to store results for this
-            module. should be overwritten to meet this modules storage needs
-        """
-        if not self.main.db.table_exists(self.info['db_table_name']):
-            sql_create_statement = ('CREATE TABLE  IF NOT EXISTS '
-                                    f'{self.info["db_table_name"]}('
-                                    'id INTEGER PRIMARY KEY AUTOINCREMENT,'
-                                    'scan_id INTEGER NOT NULL,'
-                                    'file TEXT,'
-                                    'UNIQUE(scan_id, file));')
-            self.main.db.create_table(sql_create_statement)
-
-    def _get_previous_results(self):
-        """ loads in results from previous scans, should be overwritten to load
-            in specific results needed for this module
-        """
-        # load directories from database, results are a list of tuples
-        dirs_discovered = self.main.db.\
-            get_previous_results(self.main.id,
-                              'directory',
-                              'directories_discovered')
-
-        # convert the list of tuples into a 1D list
-        return [d[0] for d in dirs_discovered]
-
-    def _save_scan_results(self, results):
-        """ dont have to worry about inserting id, scan_id
+            @return:    (list) - list of file paths in format:
+                                    {directory}/{file}.{extension}
         """
 
-        # get a list of only the file extensions
-        exts = [r.split('.')[1] for r in results if '.' in r]
+        # get the main file wordlist
+        filename_list = self.main.db.get_wordlist(self.info['wordlist_name'])
 
-        self.main.db.save_scan_results(self.main.id,
-                                       self.info['db_table_name'],
-                                       "file",
-                                       results)
+        # get the list of directories discovered
+        dirs_discovered = self._get_previous_results('DirectoryScanner')
 
-        self.main.db.update_count(exts, self.info['wordlist_name'])
+        # if there are no dirs found
+        if not dirs_discovered:
+            dirs_discovered.append('')
 
-    def _run_thread(self, directory, word):
+        exts = self.extension_list
+
+        final_list = []
+        for directory in dirs_discovered:
+            for file in filename_list:
+                for extension in exts:
+                    if directory != '':
+                        path = f'{directory}/{file}.{extension}'
+                    elif directory == '':
+                        # extension already has . in it
+                        path = f'{file}{extension}'
+
+                    # we dont want to visit restricted paths
+                    if path not in self.main.restrict_paths:
+                        final_list.append(path)
+
+        return final_list
+
+    def _run_thread(self, path):
         """ makes a HTTP GET request to check if a file exists. to be used as
             a thread.
 
@@ -82,37 +65,24 @@ class InformationDisclosure:
             :return (list):         a list of found files
         """
         found_files = []
-        backup_extensions = self.extension_list
 
         # construct the url to be used in the GET request
         url = f'{self.main.get_host_url_base()}/'
-        if directory:
-            url += (directory + '/')
 
-        # loop through file extensions to be searched for
-        for ext in backup_extensions:
-            # check we dont go to restricted path
-            if self.main.restrict_paths:
-                if f'{word}{ext}' in self.main.restrict_paths:
-                    continue
+        # make the GET request for the file
+        resp = http_get_request(url + f'{path}', self.main.cookies)
 
-            # make the GET request for the file
-            resp = http_get_request(url + f'{word}{ext}', self.main.cookies)
+        # check if the response code is a success code
+        if (resp.status_code in self.main.success_codes):
+            if self.main.options['verbose']:
+                success(path, prepend='  ')
 
-            # check if the response code is a success code
-            if (resp.status_code in self.main.success_codes):
-                # if the directory is not an empty string i.e. if it is not
-                # searching the root directory
-                found_path = ''
-                if directory:
-                    found_path = f'{directory}/{word}{ext}'
-                else:
-                    found_path = f'{word}{ext}'
-
-                if self.main.options['verbose']:
-                    success(found_path, prepend='  ')
-
-                found_files.append(found_path)
+            found_files.append({
+                'method': 'GET',
+                'page': path,
+                'parameter': None,
+                'payload': None
+            })
 
         # only return a list if files were actually found
         if found_files:
@@ -129,32 +99,16 @@ class InformationDisclosure:
         self.extension_list = self.main.db.get_wordlist(
             self.info['wordlist_name'])
 
-        # TODO: remove this before production
-        word_list = ['test']#self.main.db.get_wordlist('file')
-
-        # create the threads
-        # need to let user change the number of threads used
-        thread_pool = Pool(self.main.options['threads'])
-
         files_found = []
 
-        # loop through the list of directories found by _dir_scanner
-        dirs_discovered = self._get_previous_results()
-        for directory in dirs_discovered:
-            # use partial to allow more parameters passed to map
-            func = partial(self._run_thread, directory)
-
-            # use threads to scan for files
-            files_found += thread_pool.map(func, word_list)
+        # wordlist = self.generate_full_wordlist()
+        # debug wordlist
+        wordlist = ['index.php', 'contact.php', 'comments.php', 'about.html']
+        with concurrent.futures.ProcessPoolExecutor() as executor:
+            files_found += list(executor.map(self._run_thread, wordlist))
 
         # remove None results
-        files_found = [file for file in files_found if file is not None]
+        files_found = list(filter(None, files_found))
         files_found = [file for sublist in files_found for file in sublist]
 
-        thread_pool.close()
-        thread_pool.join()
-
-        self._save_scan_results(files_found)
-
-    def get_report_data(self):
-        return None
+        self._save_scan_results(files_found, update_count=False)

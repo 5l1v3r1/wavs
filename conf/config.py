@@ -109,6 +109,19 @@ config = {
             "File Scanner",
             "HTML Parser",
             "Local File Inclusion"
+        ],
+        "xss": [
+            "File Scanner",
+            "HTML Parser",
+            "Cross Site Scripting"
+        ],
+        "csrf": [
+            "File Scanner",
+            "HTML Parser",
+            "Cross Site Request Forgery"
+        ],
+        "info": [
+            "Information Disclosure"
         ]
     }
 }

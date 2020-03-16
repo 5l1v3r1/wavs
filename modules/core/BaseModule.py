@@ -1,11 +1,10 @@
+from tinydb import where
+from util_functions import load_module, warning
 
 
 class BaseModule:
     # marks a class as a module that can be loaded
     __wavs_mod__ = True
-
-    # save information about the module
-    info = {}
 
     def __init__(self, main):
         # save a reference to the WebScanner object
@@ -25,19 +24,37 @@ class BaseModule:
         self.main.db.save_generated_text(generated_list,
                                          self.info['wordlist_name'])
 
-    def _get_previous_results(self):
-        """ Gets scan results from modules which have run
-
-            Override this.
+    def _get_previous_results(self, module_name):
+        """ loads in results from previous scans, should be overwritten to load
+            in specific results needed for this module
         """
-        pass
+        module = load_module("modules.core", module_name)
 
-    def _save_scan_results(self, results):
-        """ Saves a scans results to the scan database
+        if not module:
+            warning(f'Could not find module {module_name}')
+            exit()
+        table_name = module.info['db_table_name']
 
-            Override this.
-        """
-        pass
+        table = self.main.db.get_scan_db().table(table_name)
+        results = table.search(where('scan_id') == self.main.id)
+
+        final = []
+        for r in results:
+            final.extend(r['results'])
+
+        return final
+
+    def _save_scan_results(self, results, update_count=True):
+        table = self.main.db.get_scan_db().table(self.info['db_table_name'])
+
+        table.insert({
+            "scan_id": self.main.id,
+            "results": results
+        })
+
+        if update_count:
+            # update wordlist count for successful words
+            self.main.db.update_count(results, self.info['wordlist_name'])
 
     def _run_thread(self):
         """ This method should be run as a thread, using multiprocessing
@@ -54,11 +71,23 @@ class BaseModule:
         """
         pass
 
-    def generate_report_section(self):
+    def get_report_data(self):
         """ This method is called when a report is being generated, it should
             take the results it has found and construct a report 'section' to
             be included in the report
 
             Override this.
         """
-        pass
+        if self.info['reportable']:
+            table_name = self.info['db_table_name']
+        else:
+            return
+
+        table = self.main.db.get_scan_db().table(table_name)
+        results = table.search(where('scan_id') == self.main.id)
+
+        final = []
+        for r in results:
+            final.extend(r['results'])
+
+        return {'module': self.info['name'], 'results': final}

@@ -3,3 +3,4 @@ sqlite3
 beautifulsoup4
 textgenrnn
 tinydb
+Jinja2

@@ -12,12 +12,38 @@ class LocalFileInclusion(InjectionScannerBase):
     """
 
     info = {
-        "name": "Local File Inclusion",
-        "desc": "Checks for local file inclusion vulnerability",
-        "reportable": True,
-        "db_table_name": "lfi_discovered",
-        "wordlist_name": "lfi_injection",
-        "author": "@ryan_ritchie"
+        "name":             "Local File Inclusion",
+        "desc":             "Checks for local file inclusion vulnerability",
+        "reportable":       True,
+        "db_table_name":    "lfi_discovered",
+        "wordlist_name":    "lfi_injection",
+        "author":           "@ryan_ritchie",
+        "report": {
+            "level":            "High",
+            "vulnerability":    "Local File Inclusion",
+            "description":
+                "Most web programming languages allow the inclusion of files "
+                "to extend the functionality of the file. If the application "
+                "uses user input to determine the file that is included it "
+                "could lead to unintentional information disclosure, and "
+                "code execution if the attacker is able to upload files.",
+            "mitigation":
+                "- If the set of files that can be included is known, create "
+                "  a mapping between the files and numeric ids and reject "
+                "  all other inputs.\n"
+                "- If possible run the web application in a restricted "
+                "  'sandbox' environment that restricts access to the "
+                "   underlying operating system.\n"
+                "- Use a whitelist of acceptable inputs and reject all other "
+                "  inputs.\n"
+                "- Reject directory seperator characters from input\n"
+                "- Do not rely exclusively on a filtering mechanism\n"
+                "- Use a web application firewall (WAP) which detects common "
+                "  attack strings and blocks them.\n"
+                "- Make sure you are using the latest versions of web "
+                "  frameworks and programming languages.\n",
+            "link": "http://cwe.mitre.org/data/definitions/98.html"
+        }
     }
 
     def __init__(self, main):

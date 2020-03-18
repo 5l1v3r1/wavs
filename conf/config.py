@@ -122,6 +122,12 @@ config = {
         ],
         "info": [
             "Information Disclosure"
+        ],
+        "test": [
+            "File Scanner",
+            "HTML Parser",
+            "SQL Injection Scanner",
+            "Local File Inclusion"
         ]
     }
 }

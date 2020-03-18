@@ -12,7 +12,26 @@ class CSRF(BaseModule):
         "db_table_name": "csrf_discovered",
         "wordlist_name": "csrf",
         "desc": "Searches for the lack of anti-csrf tokens in forms",
-        "author": "@ryan_ritchie"
+        "author": "@ryan_ritchie",
+        "report": {
+            "level":            "Low",
+            "vulnerability":    "Absence of anti-CSRF tokens",
+            "description":
+                "No anti-CSRF tokens where found in a form. Anti-CSRF tokens "
+                "protect against cross site request forgery (CSRF) attacks. CSRF "
+                "is an attack which exploits a user's session by making the user "
+                "send an HTTP request to the target application without their "
+                "consent. The request will then perform whatever action the "
+                "attacker wants, with the users privileges.",
+            "mitigation":
+                "- Generate a non-predictable token for each form, and verify "
+                "  the token is correct upon form submission.\n"
+                "- Make sure the application is not vulnerable to cross site "
+                "  scripting (XSS), as XSS can bypass anti-CSRF protections.\n"
+                "- Use an application framework which provides built-in "
+                "  anti-CSRF functionality.\n",
+            "link": "https://cwe.mitre.org/data/definitions/352.html"
+        }
     }
 
     def __init__(self, main):

@@ -90,4 +90,6 @@ class BaseModule:
         for r in results:
             final.extend(r['results'])
 
-        return {'module': self.info['name'], 'results': final}
+        return {'module': self.info['name'],
+                'results': final,
+                'report': self.info['report']}

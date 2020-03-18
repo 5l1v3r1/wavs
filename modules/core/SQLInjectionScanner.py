@@ -22,7 +22,27 @@ class SQLInjectionScanner(InjectionScannerBase):
         "reportable":       True,
         "db_table_name":    "sql_injections",
         "wordlist_name":    "sql_injection",
-        "author":           "@ryan_ritchie"
+        "author":           "@ryan_ritchie",
+        "report": {
+            "level":            "High",
+            "vulnerability":    "SQL Injection",
+            "description":
+                "An SQL injection is when malicious SQL statements are "
+                "inserted into input parameters in an application with the "
+                "intention that the SQL is executed and perform some action "
+                "on the applications database that the developer did not "
+                "intend. SQL injections arise when user input is incorrectly "
+                "filtered.",
+            "mitigation": [
+                "- Treat all user inputs as malicious",
+                "- Use prepared statements if available for DBMS",
+                "- Never concatenate user input into SQL queries",
+                "- Escape all input received from users",
+                "- Use a whitelist of allowed characters, reject all else",
+                "- Use a low privilege database user if possible",
+            ],
+            "link": "https://cwe.mitre.org/data/definitions/89.html"
+        }
     }
 
     def __init__(self, main):

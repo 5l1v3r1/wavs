@@ -14,7 +14,28 @@ class InformationDisclosure(BaseModule):
         "reportable":       True,
         "wordlist_name":    "info_disclosure",
         "desc":             "Scans for files that should not be accessible",
-        "author":           "@ryan_ritchie"
+        "author":           "@ryan_ritchie",
+        "report": {
+            "level":            "Medium",
+            "vulnerability":    "Information disclosure",
+            "description":
+                "The web application exposes information to unauthorised"
+                "actors."
+                "\n"
+                "Information exposure can occur:"
+                "- program code explicitly inserts sensitive information"
+                "  into the application and is made accessible to"
+                "  unauthorised users\n"
+                "- a mistake in program code exposes the directory structure"
+                "  of the application\n",
+            "mitigation":
+                "- Compartmentalise the system to have 'safe' areas where "
+                "  sensitive information is stored. Do not allow sensitive "
+                "  information to leave the safe area.\n"
+                "- Rely on the principal of least privilege in program "
+                "  design.\n",
+            "link": "https://cwe.mitre.org/data/definitions/200.html"
+        }
     }
 
     def __init__(self, main):

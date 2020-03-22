@@ -1,5 +1,5 @@
 from conf import config
-from util_functions import success, warning
+from util_functions import info, success, warning
 import datetime
 import textwrap
 
@@ -10,7 +10,11 @@ class ReportGenerator:
 
     def generate_txt(self):
         generator = TextReportGenerator(self.main)
-        print(generator.render())
+        generator.save_report(generator.render())
+
+    def generate_html(self):
+        generator = HTMLReportGenerator(self.main)
+        generator.save_report(generator.render())
 
 
 class BaseGenerator:
@@ -20,6 +24,32 @@ class BaseGenerator:
 
     def __init__(self, main):
         self.main = main
+        self.type = ''
+
+    def save_report(self, text):
+        ext = ''
+
+        if self.type == 'text':
+            ext = '.txt'
+        elif self.type == 'html':
+            ext = '.html'
+        elif self.type == 'pdf':
+            ext = '.pdf'
+        else:
+            ext = '.txt'
+
+        date = datetime.datetime.now().strftime("%d-%m-%Y-%H:%M:%S")
+        filename = f'WAVS Report - {date}'
+        path = f'reports/{filename}{ext}'
+
+        try:
+            with open(path, 'w') as f:
+                f.write(text)
+        except IOError:
+            warning(f'Could not save report: {path}')
+            exit()
+
+        info(f'Saved report to: {path}')
 
     def _gather_data(self):
         # get the modules which were run in current scan
@@ -45,21 +75,136 @@ class BaseGenerator:
         return summary
 
 
+class HTMLReportGenerator(BaseGenerator):
+    def __init__(self, main):
+        BaseGenerator.__init__(self, main)
+
+        self.type = 'html'
+        self.report_data = self._gather_data()
+        self.html = ''
+
+    def add_text(self, text):
+        self.html += f'{text}'
+
+    def begin_html(self):
+        self.add_text('<!doctype html>')
+        self.add_text('<html><head><title>WAVS Vulnerability Report</title>')
+        self.add_text('<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">')
+        self.add_text('<script src="https://code.jquery.com/jquery-3.2.1.slim.min.js" integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN" crossorigin="anonymous"></script>')
+        self.add_text('<script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js" integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q" crossorigin="anonymous"></script>')
+        self.add_text('<script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js" integrity="sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl" crossorigin="anonymous"></script>')
+        #self.add_text('<style>table,th,td {border-collapse: collapse;border: 1px solid black;}td,th{padding: 4px 4px;}</style>')
+        self.add_text('</head><body><div class="container">')
+
+    def end_html(self):
+        self.add_text('</div></body></html>')
+
+    def add_heading(self, text):
+        self.add_text(f'<h2>{text}</h2>')
+
+    def add_header(self):
+        html = f'<br><pre class="bg-success text-white text-center">{config.banner}</pre>'
+        self.add_text(html)
+
+    def add_summary(self):
+        stats = self._gather_stats(self.report_data)
+
+        self.add_heading("Vulnerability Summary")
+        self.add_table(stats, ['Level', 'Number of Alerts'])
+
+    def add_table(self, table_dict, headings=[]):
+        table_html = '<p><table class="table table-sm">'
+        if headings:
+            table_html += f'<thead class="thead-dark"><tr><th>{headings[0]}</th><th>{headings[1]}</th></tr></thead>'
+
+        for k, v in table_dict.items():
+            table_html += f'<tr><td>{k}</td><td>{v}</td></tr>'
+
+        table_html += '</table></p><br>'
+        self.add_text(table_html)
+
+    def add_list(self, list_items):
+        list_html = '<ul>'
+        for item in list_items:
+            list_html += f'<li>{item.replace("-", "")}</li>'
+        list_html += '</ul>'
+
+        return list_html
+
+    def add_section(self, vuln):
+        report_data = vuln["report"]
+        results = vuln["results"]
+
+        thead_class = ''
+        if report_data["level"] == 'High':
+            thead_class = 'bg-danger'
+        elif report_data["level"] == 'Medium':
+            thead_class = 'bg-warning'
+        elif report_data["level"] == 'Low':
+            thead_class = 'bg-info'
+        else:
+            thead_class = 'bg-primary'
+
+        table_html = '<p><table class="table table-sm">'
+        table_html += f'<thead class="{thead_class}"><tr><th>{report_data["level"]}</th><th>{report_data["vulnerability"]}</th></tr></thead>'
+        table_html += f'<tr><td>Description</td><td>{report_data["description"]}</td></tr>'
+        table_html += f'<tr><td>Mitigation</td><td>{self.add_list(report_data["mitigation"])}</td></tr>'
+        table_html += '<thead class="thead-light"><tr><th colspan="2">Instances found</th></tr></thead>'
+        table_html += '<tr><td colspan="2"><div class="card-deck">'
+        for result in results:
+            table_html += self.add_vuln_detail(result)
+        table_html += '</div></td></tr></table></p><br>'
+
+        self.add_text(table_html)
+
+    def add_vuln_detail(self, vuln):
+        html = f"""
+        <div class="card text-white bg-warning mb-3" style="max-width: 32rem;">
+          <div class="card-header">{vuln['page']}</div>
+          <div class="card-body">
+            <p class="card-text">
+                <p>URL: {vuln['page']}<br>
+                Method: {vuln['method']}<br>
+        """
+        if vuln['parameter']:
+            html += f'Parameter: {vuln["parameter"]}<br>'
+        if vuln['payload']:
+            html += f'Payload: {vuln["payload"]}<br>'
+
+        html += '</p></p></div></div>'
+        return html
+
+    def render(self):
+        self.begin_html()
+        self.add_header()
+        self.add_summary()
+        for vuln in self.report_data:
+            self.add_section(vuln)
+        self.end_html()
+
+        return self.html
+
+
 class TextReportGenerator(BaseGenerator):
     def __init__(self, main):
         BaseGenerator.__init__(self, main)
 
+        self.type = 'text'
         self.report_data = self._gather_data()
         self.__report_text = ''
 
-    def _add_text(self, text,indent_level=0, nl=1):
+    def _add_text(self, text, indent_level=0, nl=1):
         self.__report_text += f'{"  " * indent_level}{text}'
         if nl:
             t = '\n' * nl
             self.__report_text += t
 
+    def _gen_header(self):
+        self._add_text(config.banner)
+        self._gen_heading('WAVS Vulnerability Report', 0, '=')
+
     def _gen_heading(self, heading, indent_level=0, underline_char='-'):
-        self._add_text(f'{heading}'.title(), indent_level)
+        self._add_text(f'{heading}', indent_level)
         self._add_text(f'{underline_char * len(heading)}', indent_level)
 
     def _gen_summary(self):
@@ -76,7 +221,8 @@ class TextReportGenerator(BaseGenerator):
         self._gen_heading(report_data['vulnerability'], indent_level)
         self._add_text(f'Level: {report_data["level"]}', indent_level + 1)
         self._add_text('Description:', indent_level + 1)
-        desc = textwrap.indent(textwrap.fill(report_data["description"], 80), '  ' * (indent_level + 2))
+        desc = textwrap.indent(textwrap.fill(report_data["description"], 80),
+                               '  ' * (indent_level + 2))
         self._add_text(f'{desc}')
         self._add_text('Mitigation:', indent_level + 1)
         for mit in report_data['mitigation']:
@@ -87,14 +233,21 @@ class TextReportGenerator(BaseGenerator):
             self._gen_vuln_detail(r, indent_level+2)
 
     def _gen_vuln_detail(self, result, indent_level):
-        self._add_text(f'URL: \t\t{self.main.get_host_url_base()}/{result["page"]}', indent_level)
-        self._add_text(f'Method: \t\t{result["method"]}', indent_level)
+        self._add_text(
+            f'URL: {self.main.get_host_url_base()}/{result["page"]}',
+            indent_level)
+        self._add_text(f'Method: {result["method"]}', indent_level)
         if result['parameter']:
-            self._add_text(f'Parameter[s]: \t{result["parameter"]}', indent_level)
+            self._add_text(f'Parameter[s]: {result["parameter"]}',
+                           indent_level)
         if result['payload']:
-            self._add_text(f'Payload: \t\t{result["payload"]}', indent_level, 2)
+            self._add_text(f'Payload: {result["payload"]}',
+                           indent_level,
+                           2)
 
     def render(self):
+        self._gen_header()
+
         for vuln in self.report_data:
             self._gen_section(vuln, 0)
 

@@ -122,7 +122,7 @@ class WebScanner():
             info('Completed text generation')
         else:
             self.run_modules()
-            self.report_gen.generate_txt()
+            self.report_gen.generate_html()
             self.db.remove_generated_text()
 
     def _load_config(self):

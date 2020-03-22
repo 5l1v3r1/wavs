@@ -1,0 +1,91 @@
+<!doctype html><html><head><title>WAVS Vulnerability Report</title><link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous"><script src="https://code.jquery.com/jquery-3.2.1.slim.min.js" integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN" crossorigin="anonymous"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js" integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q" crossorigin="anonymous"></script><script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js" integrity="sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl" crossorigin="anonymous"></script></head><body><div class="container"><br><pre class="text-center">
+`7MMF'     A     `7MF' db `7MMF'   `7MF'.M'''bgd
+  `MA     ,MA     ,V  ;MM:  `MA     ,V ,MI    "Y
+   VM:   ,VVM:   ,V  ,V^MM.  VM:   ,V  `MMb.
+    MM.  M' MM.  M' ,M  `MM   MM.  M'    `YMMNq.
+    `MM A'  `MM A'  AbmmmqMA  `MM A'   .     `MM
+     :MM;    :MM;  A'     VML  :MM;    Mb     dM
+      VF      VF .AMA.   .AMMA. VF     P"Ybmmd"
+
+Web Application Vulnerability Scanner by Ryan Ritchie
+</pre><h2>Vulnerability Summary</h2><p><table class="table table-sm"><thead class="thead-dark"><tr><th>Level</th><th>Number of Alerts</th></tr></thead><tr><td>High</td><td>4</td></tr><tr><td>Medium</td><td>4</td></tr><tr><td>Low</td><td>3</td></tr><tr><td>Information</td><td>0</td></tr></table></p><br><p><table class="table table-sm"><thead class="bg-danger"><tr><th>High</th><th>SQL Injection</th></tr></thead><tr><td>Description</td><td>An SQL injection is when malicious SQL statements are inserted into input parameters in an application with the intention that the SQL is executed and perform some action on the applications database that the developer did not intend. SQL injections arise when user input is incorrectly filtered.</td></tr><tr><td>Mitigation</td><td><ul><li> Treat all user inputs as malicious</li><li> Use prepared statements if available for DBMS</li><li> Never concatenate user input into SQL queries</li><li> Escape all input received from users</li><li> Use a whitelist of allowed characters, reject all else</li><li> Use a low privilege database user if possible</li></ul></td></tr><thead class="thead-light"><tr><th colspan="2">Instances found</th></tr></thead><tr><td colspan="2"><div class="card-deck">
+        <div class="card text-white bg-warning mb-3" style="max-width: 32rem;">
+          <div class="card-header">index.php</div>
+          <div class="card-body">
+            <p class="card-text">
+                <p>URL: index.php<br>
+                Method: POST<br>
+        Parameter: username<br>Payload: )%20or%20('x'='x<br></p></p></div></div>
+        <div class="card text-white bg-warning mb-3" style="max-width: 32rem;">
+          <div class="card-header">index.php</div>
+          <div class="card-body">
+            <p class="card-text">
+                <p>URL: index.php<br>
+                Method: POST<br>
+        Parameter: password<br>Payload: )%20or%20('x'='x<br></p></p></div></div></div></td></tr></table></p><br><p><table class="table table-sm"><thead class="bg-danger"><tr><th>High</th><th>Local File Inclusion</th></tr></thead><tr><td>Description</td><td>Most web programming languages allow the inclusion of files to extend the functionality of the file. If the application uses user input to determine the file that is included it could lead to unintentional information disclosure, and code execution if the attacker is able to upload files.</td></tr><tr><td>Mitigation</td><td><ul><li> If the set of files that can be included is known, create a mapping between the files and numeric ids and reject all other inputs.</li><li> If possible run the web application in a restricted 'sandbox' environment that restricts access to the underlying operating system.</li><li> Use a whitelist of acceptable inputs and reject all other inputs.</li><li> Reject directory seperator characters from input</li><li> Do not rely exclusively on a filtering mechanism</li><li> Use a web application firewall (WAP) which detects common attack strings and blocks them.</li><li> Make sure you are using the latest versions of web frameworks and programming languages.</li></ul></td></tr><thead class="thead-light"><tr><th colspan="2">Instances found</th></tr></thead><tr><td colspan="2"><div class="card-deck">
+        <div class="card text-white bg-warning mb-3" style="max-width: 32rem;">
+          <div class="card-header">contact.php</div>
+          <div class="card-body">
+            <p class="card-text">
+                <p>URL: contact.php<br>
+                Method: GET<br>
+        Parameter: page<br>Payload: /%2e%2e/%2e%2e/%2e%2e/%2e%2e/%2e%2e/%2e%2e/%2e%2e/%2e%2e/%2e%2e/%2e%2e/etc/passwd<br></p></p></div></div></div></td></tr></table></p><br><p><table class="table table-sm"><thead class="bg-danger"><tr><th>High</th><th>Cross Site Scripting - Reflected</th></tr></thead><tr><td>Description</td><td>Cross-site scripting (XSS) is when attacker supplied scripting code is injected into a user's browser. This can happen when user provided data is not sanitised. When an attackers code is executed the code could hijack a user's account by stealing cookies, the browser could be redirected to a different website or the content of the website could be changed.</td></tr><tr><td>Mitigation</td><td><ul><li> To prevent XSS assume that all user input is malicious.</li><li> Use a whitelist of acceptable inputs, reject anything that does not conform to the whitelist.</li><li> Use a blacklist of known attack inputs to be alerted when the application is being attacked, and consider banning IPs that attacks originate from.</li><li> Make sure that validation performed on the client side is also performed on the server side, as client side controls can be bypassed.</li></ul></td></tr><thead class="thead-light"><tr><th colspan="2">Instances found</th></tr></thead><tr><td colspan="2"><div class="card-deck">
+        <div class="card text-white bg-warning mb-3" style="max-width: 32rem;">
+          <div class="card-header">comments.php</div>
+          <div class="card-body">
+            <p class="card-text">
+                <p>URL: comments.php<br>
+                Method: POST<br>
+        Parameter: comment<br>Payload: <a draggable=true ondrag=alert(1)>test</a><br></p></p></div></div></div></td></tr></table></p><br><p><table class="table table-sm"><thead class="bg-info"><tr><th>Low</th><th>Absence of anti-CSRF tokens</th></tr></thead><tr><td>Description</td><td>No anti-CSRF tokens where found in a form. Anti-CSRF tokens protect against cross site request forgery (CSRF) attacks. CSRF is an attack which exploits a user's session by making the user send an HTTP request to the target application without their consent. The request will then perform whatever action the attacker wants, with the users privileges.</td></tr><tr><td>Mitigation</td><td><ul><li> Generate a nonpredictable token for each form, and verify the token is correct upon form submission.</li><li> Make sure the application is not vulnerable to cross site scripting (XSS), as XSS can bypass antiCSRF protections.</li><li> Use an application framework which provides builtin antiCSRF functionality.</li></ul></td></tr><thead class="thead-light"><tr><th colspan="2">Instances found</th></tr></thead><tr><td colspan="2"><div class="card-deck">
+        <div class="card text-white bg-warning mb-3" style="max-width: 32rem;">
+          <div class="card-header">index.php</div>
+          <div class="card-body">
+            <p class="card-text">
+                <p>URL: index.php<br>
+                Method: POST<br>
+        Parameter: ['username', 'password', 'submit']<br></p></p></div></div>
+        <div class="card text-white bg-warning mb-3" style="max-width: 32rem;">
+          <div class="card-header">form_hidden_page.php</div>
+          <div class="card-body">
+            <p class="card-text">
+                <p>URL: form_hidden_page.php<br>
+                Method: POST<br>
+        Parameter: ['hidden_name', 'submit']<br></p></p></div></div>
+        <div class="card text-white bg-warning mb-3" style="max-width: 32rem;">
+          <div class="card-header">comments.php</div>
+          <div class="card-body">
+            <p class="card-text">
+                <p>URL: comments.php<br>
+                Method: POST<br>
+        Parameter: ['comment', 'submit']<br></p></p></div></div></div></td></tr></table></p><br><p><table class="table table-sm"><thead class="bg-warning"><tr><th>Medium</th><th>Information disclosure</th></tr></thead><tr><td>Description</td><td>The web application exposes information to unauthorisedactors.
+Information exposure can occur:- program code explicitly inserts sensitive information  into the application and is made accessible to  unauthorised users
+- a mistake in program code exposes the directory structure  of the application
+</td></tr><tr><td>Mitigation</td><td><ul><li> Compartmentalise the system to have 'safe' areas where sensitive information is stored. Do not allow sensitive information to leave the safe area.</li><li> Rely on the principal of least privilege in program design.</li></ul></td></tr><thead class="thead-light"><tr><th colspan="2">Instances found</th></tr></thead><tr><td colspan="2"><div class="card-deck">
+        <div class="card text-white bg-warning mb-3" style="max-width: 32rem;">
+          <div class="card-header">index.php</div>
+          <div class="card-body">
+            <p class="card-text">
+                <p>URL: index.php<br>
+                Method: GET<br>
+        </p></p></div></div>
+        <div class="card text-white bg-warning mb-3" style="max-width: 32rem;">
+          <div class="card-header">contact.php</div>
+          <div class="card-body">
+            <p class="card-text">
+                <p>URL: contact.php<br>
+                Method: GET<br>
+        </p></p></div></div>
+        <div class="card text-white bg-warning mb-3" style="max-width: 32rem;">
+          <div class="card-header">comments.php</div>
+          <div class="card-body">
+            <p class="card-text">
+                <p>URL: comments.php<br>
+                Method: GET<br>
+        </p></p></div></div>
+        <div class="card text-white bg-warning mb-3" style="max-width: 32rem;">
+          <div class="card-header">about.html</div>
+          <div class="card-body">
+            <p class="card-text">
+                <p>URL: about.html<br>
+                Method: GET<br>
+        </p></p></div></div></div></td></tr></table></p><br></div></body></html>

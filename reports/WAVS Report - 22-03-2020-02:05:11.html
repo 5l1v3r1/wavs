@@ -1,0 +1,25 @@
+<!doctype html><html><head><title>WAVS Vulnerability Report</title><link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous"><script src="https://code.jquery.com/jquery-3.2.1.slim.min.js" integrity="sha384-KJ3o2DKtIkvYIK3UENzmM7KCkRr/rE9/Qpg6aAZGJwFDMVNA/GpGFF93hXpG5KkN" crossorigin="anonymous"></script><script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js" integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q" crossorigin="anonymous"></script><script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js" integrity="sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl" crossorigin="anonymous"></script></head><body><div class="container"><br><pre class="text-center">
+`7MMF'     A     `7MF' db `7MMF'   `7MF'.M'''bgd
+  `MA     ,MA     ,V  ;MM:  `MA     ,V ,MI    "Y
+   VM:   ,VVM:   ,V  ,V^MM.  VM:   ,V  `MMb.
+    MM.  M' MM.  M' ,M  `MM   MM.  M'    `YMMNq.
+    `MM A'  `MM A'  AbmmmqMA  `MM A'   .     `MM
+     :MM;    :MM;  A'     VML  :MM;    Mb     dM
+      VF      VF .AMA.   .AMMA. VF     P"Ybmmd"
+
+Web Application Vulnerability Scanner by Ryan Ritchie
+</pre><h2>Vulnerability Summary</h2><p><table class="table table-sm"><thead class="thead-dark"><tr><th>Level</th><th>Number of Alerts</th></tr></thead><tr><td>High</td><td>2</td></tr><tr><td>Medium</td><td>0</td></tr><tr><td>Low</td><td>0</td></tr><tr><td>Information</td><td>0</td></tr></table></p><br><p><table class="table table-sm"><thead class="bg-danger"><tr><th>High</th><th>SQL Injection</th></tr></thead><tr><td>Description</td><td>An SQL injection is when malicious SQL statements are inserted into input parameters in an application with the intention that the SQL is executed and perform some action on the applications database that the developer did not intend. SQL injections arise when user input is incorrectly filtered.</td></tr><tr><td>Mitigation</td><td><ul><li> Treat all user inputs as malicious</li><li> Use prepared statements if available for DBMS</li><li> Never concatenate user input into SQL queries</li><li> Escape all input received from users</li><li> Use a whitelist of allowed characters, reject all else</li><li> Use a low privilege database user if possible</li></ul></td></tr><thead class="thead-light"><tr><th colspan="2">Instances found</th></tr></thead><tr><td colspan="2"><div class="card-deck">
+        <div class="card text-white bg-warning mb-3" style="max-width: 32rem;">
+          <div class="card-header">index.php</div>
+          <div class="card-body">
+            <p class="card-text">
+                <p>URL: index.php</p>
+                <p>Method: POST</p>
+        <p>Parameter: username</p><p>Payload: )%20or%20('x'='x</p></p></div></div>
+        <div class="card text-white bg-warning mb-3" style="max-width: 32rem;">
+          <div class="card-header">index.php</div>
+          <div class="card-body">
+            <p class="card-text">
+                <p>URL: index.php</p>
+                <p>Method: POST</p>
+        <p>Parameter: password</p><p>Payload: )%20or%20('x'='x</p></p></div></div></div></td></tr></table></p><br></div></body></html>

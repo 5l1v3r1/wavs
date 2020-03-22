@@ -28,12 +28,10 @@ class InformationDisclosure(BaseModule):
                 "  unauthorised users\n"
                 "- a mistake in program code exposes the directory structure"
                 "  of the application\n",
-            "mitigation":
-                "- Compartmentalise the system to have 'safe' areas where "
-                "  sensitive information is stored. Do not allow sensitive "
-                "  information to leave the safe area.\n"
-                "- Rely on the principal of least privilege in program "
-                "  design.\n",
+            "mitigation": [
+                    "- Compartmentalise the system to have 'safe' areas where sensitive information is stored. Do not allow sensitive information to leave the safe area.",
+                    "- Rely on the principal of least privilege in program design."
+                ],
             "link": "https://cwe.mitre.org/data/definitions/200.html"
         }
     }

@@ -2,6 +2,7 @@
 planner.md
 
 # text generation
+reports/
 *.hdf5
 
 # Byte-compiled / optimized / DLL files

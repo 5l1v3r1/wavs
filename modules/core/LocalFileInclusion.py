@@ -27,21 +27,15 @@ class LocalFileInclusion(InjectionScannerBase):
                 "uses user input to determine the file that is included it "
                 "could lead to unintentional information disclosure, and "
                 "code execution if the attacker is able to upload files.",
-            "mitigation":
-                "- If the set of files that can be included is known, create "
-                "  a mapping between the files and numeric ids and reject "
-                "  all other inputs.\n"
-                "- If possible run the web application in a restricted "
-                "  'sandbox' environment that restricts access to the "
-                "   underlying operating system.\n"
-                "- Use a whitelist of acceptable inputs and reject all other "
-                "  inputs.\n"
-                "- Reject directory seperator characters from input\n"
-                "- Do not rely exclusively on a filtering mechanism\n"
-                "- Use a web application firewall (WAP) which detects common "
-                "  attack strings and blocks them.\n"
-                "- Make sure you are using the latest versions of web "
-                "  frameworks and programming languages.\n",
+            "mitigation": [
+                    "- If the set of files that can be included is known, create a mapping between the files and numeric ids and reject all other inputs.",
+                    "- If possible run the web application in a restricted 'sandbox' environment that restricts access to the underlying operating system.",
+                    "- Use a whitelist of acceptable inputs and reject all other inputs.",
+                    "- Reject directory seperator characters from input",
+                    "- Do not rely exclusively on a filtering mechanism",
+                    "- Use a web application firewall (WAP) which detects common attack strings and blocks them.",
+                    "- Make sure you are using the latest versions of web frameworks and programming languages."
+                ],
             "link": "http://cwe.mitre.org/data/definitions/98.html"
         }
     }

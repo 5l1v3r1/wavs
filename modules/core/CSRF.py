@@ -23,13 +23,11 @@ class CSRF(BaseModule):
                 "send an HTTP request to the target application without their "
                 "consent. The request will then perform whatever action the "
                 "attacker wants, with the users privileges.",
-            "mitigation":
-                "- Generate a non-predictable token for each form, and verify "
-                "  the token is correct upon form submission.\n"
-                "- Make sure the application is not vulnerable to cross site "
-                "  scripting (XSS), as XSS can bypass anti-CSRF protections.\n"
-                "- Use an application framework which provides built-in "
-                "  anti-CSRF functionality.\n",
+            "mitigation": [
+                    "- Generate a non-predictable token for each form, and verify the token is correct upon form submission.",
+                    "- Make sure the application is not vulnerable to cross site scripting (XSS), as XSS can bypass anti-CSRF protections.",
+                    "- Use an application framework which provides built-in anti-CSRF functionality."
+                ],
             "link": "https://cwe.mitre.org/data/definitions/352.html"
         }
     }

@@ -2,18 +2,32 @@ from conf import config
 from util_functions import info, success, warning
 import datetime
 import textwrap
+from weasyprint import HTML
 
 
 class ReportGenerator:
     def __init__(self, main):
         self.main = main
+        self.report_type = self.main.options['report_extension']
 
-    def generate_txt(self):
-        generator = TextReportGenerator(self.main)
+    def generate_report(self, scan_id):
+        if self.report_type == 'html':
+            self.generate_html(scan_id)
+        elif self.report_type == 'txt':
+            self.generate_txt(scan_id)
+        elif self.report_type == 'pdf':
+            self.generate_pdf(scan_id)
+
+    def generate_txt(self, scan_id):
+        generator = TextReportGenerator(self.main, scan_id)
         generator.save_report(generator.render())
 
-    def generate_html(self):
-        generator = HTMLReportGenerator(self.main)
+    def generate_html(self, scan_id):
+        generator = HTMLReportGenerator(self.main, scan_id)
+        generator.save_report(generator.render())
+
+    def generate_pdf(self, scan_id):
+        generator = PDFReportGenerator(self.main, scan_id)
         generator.save_report(generator.render())
 
 
@@ -22,9 +36,10 @@ class BaseGenerator:
         into different report formats.
     """
 
-    def __init__(self, main):
+    def __init__(self, main, scan_id):
         self.main = main
         self.type = ''
+        self.scan_id = scan_id
 
     def save_report(self, text):
         ext = ''
@@ -42,12 +57,15 @@ class BaseGenerator:
         filename = f'WAVS Report - {date}'
         path = f'reports/{filename}{ext}'
 
-        try:
-            with open(path, 'w') as f:
-                f.write(text)
-        except IOError:
-            warning(f'Could not save report: {path}')
-            exit()
+        if self.type == 'pdf':
+            text.write_pdf(path)
+        else:
+            try:
+                with open(path, 'w') as f:
+                    f.write(text)
+            except IOError:
+                warning(f'Could not save report: {path}')
+                exit()
 
         info(f'Saved report to: {path}')
 
@@ -56,10 +74,15 @@ class BaseGenerator:
         modules_run = self.main.get_modules()
 
         # get db results for each module
-        db_data = [module.get_report_data() for module in modules_run]
+        db_data = [module.get_report_data(self.scan_id) for module in modules_run]
         db_data = list(filter(None, db_data))
 
         return db_data
+
+    def _gather_scan_details(self):
+        scans_table = self.main.db.get_scan_db().table('scans')
+        data = scans_table.get(doc_id=self.scan_id)
+        return data
 
     def _gather_stats(self, vuln_data):
         summary = {
@@ -75,9 +98,21 @@ class BaseGenerator:
         return summary
 
 
+class PDFReportGenerator(BaseGenerator):
+    def __init__(self, main, scan_id):
+        BaseGenerator.__init__(self, main, scan_id)
+        self.type = 'pdf'
+
+        self.html_gen = HTMLReportGenerator(main)
+
+    def render(self):
+        html = self.html_gen.render()
+        return HTML(string=html)
+
+
 class HTMLReportGenerator(BaseGenerator):
-    def __init__(self, main):
-        BaseGenerator.__init__(self, main)
+    def __init__(self, main, scan_id):
+        BaseGenerator.__init__(self, main, scan_id)
 
         self.type = 'html'
         self.report_data = self._gather_data()
@@ -103,13 +138,22 @@ class HTMLReportGenerator(BaseGenerator):
         self.add_text(f'<h2>{text}</h2>')
 
     def add_header(self):
-        html = f'<br><pre class="bg-success text-white text-center">{config.banner}</pre>'
+        html = f'<br><pre class="text-center">{config.banner}</pre>'
+        self.add_text(html)
+
+    def add_scan_detail(self):
+        data = self._gather_scan_details()
+
+        html = f"""
+        <div class='alert alert-success text-center' role='alert'>
+            Host: {data['host']} | Port: {data['port']} | Start: {datetime.datetime.strptime(data['timestamp'], '%Y-%m-%d %H:%M:%S.%f').strftime("%d/%m/%Y-%H:%M:%S")}
+        </div>"""
         self.add_text(html)
 
     def add_summary(self):
         stats = self._gather_stats(self.report_data)
 
-        self.add_heading("Vulnerability Summary")
+        self.add_heading("Summary")
         self.add_table(stats, ['Level', 'Number of Alerts'])
 
     def add_table(self, table_dict, headings=[]):
@@ -149,6 +193,7 @@ class HTMLReportGenerator(BaseGenerator):
         table_html += f'<thead class="{thead_class}"><tr><th>{report_data["level"]}</th><th>{report_data["vulnerability"]}</th></tr></thead>'
         table_html += f'<tr><td>Description</td><td>{report_data["description"]}</td></tr>'
         table_html += f'<tr><td>Mitigation</td><td>{self.add_list(report_data["mitigation"])}</td></tr>'
+        table_html += f'<tr><td>CWE Link</td><td><a href="{report_data["link"]}" target="_blank">{report_data["link"]}</a></td></tr>'
         table_html += '<thead class="thead-light"><tr><th colspan="2">Instances found</th></tr></thead>'
         table_html += '<tr><td colspan="2"><div class="card-deck">'
         for result in results:
@@ -159,9 +204,9 @@ class HTMLReportGenerator(BaseGenerator):
 
     def add_vuln_detail(self, vuln):
         html = f"""
-        <div class="card text-white bg-warning mb-3" style="max-width: 32rem;">
+        <div class="card border-warning mb-3" style="max-width: 32rem;">
           <div class="card-header">{vuln['page']}</div>
-          <div class="card-body">
+          <div class="card-body text-warning">
             <p class="card-text">
                 <p>URL: {vuln['page']}<br>
                 Method: {vuln['method']}<br>
@@ -177,7 +222,11 @@ class HTMLReportGenerator(BaseGenerator):
     def render(self):
         self.begin_html()
         self.add_header()
+        self.add_scan_detail()
         self.add_summary()
+        self.add_heading("Vulnerabilities")
+        if len(self.report_data) == 0:
+            self.add_text('<div class="alert-success">No vulnerabilities were found.</div>')
         for vuln in self.report_data:
             self.add_section(vuln)
         self.end_html()
@@ -186,8 +235,8 @@ class HTMLReportGenerator(BaseGenerator):
 
 
 class TextReportGenerator(BaseGenerator):
-    def __init__(self, main):
-        BaseGenerator.__init__(self, main)
+    def __init__(self, main, scan_id):
+        BaseGenerator.__init__(self, main, scan_id)
 
         self.type = 'text'
         self.report_data = self._gather_data()
@@ -206,6 +255,13 @@ class TextReportGenerator(BaseGenerator):
     def _gen_heading(self, heading, indent_level=0, underline_char='-'):
         self._add_text(f'{heading}', indent_level)
         self._add_text(f'{underline_char * len(heading)}', indent_level)
+
+    def _gen_detail(self, indent_level):
+        data = self._gather_scan_details()
+        self._gen_heading('Scan Details', indent_level)
+        self._add_text(f'Scan start: {data["timestamp"]}')
+        self._add_text(f'Host: {data["host"]}')
+        self._add_text(f'Port: {data["port"]}\n')
 
     def _gen_summary(self):
         stats = self._gather_stats(self.report_data)
@@ -247,6 +303,7 @@ class TextReportGenerator(BaseGenerator):
 
     def render(self):
         self._gen_header()
+        self._gen_detail(0)
 
         for vuln in self.report_data:
             self._gen_section(vuln, 0)

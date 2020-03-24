@@ -37,6 +37,10 @@ class DBManager:
     def get_scan_db(self):
         return TinyDB(self.db_paths['scan_results'])
 
+    def scan_exists(self, scan_id):
+        scan_table = self.get_scan_db().table('scans')
+        return scan_table.contains(doc_ids=[scan_id])
+
     def save_new_scan(self, scan_object):
         """ called each time a new scan is run, saves details about the scan
             and returns a unique scan id to identify the scan

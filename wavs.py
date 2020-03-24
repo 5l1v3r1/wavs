@@ -17,7 +17,7 @@ from utils.ReportGenerator import ReportGenerator
 from util_functions import clear_screen
 from util_functions import load_module
 from util_functions import cookie_parse
-from util_functions import info, warning, banner_colour
+from util_functions import info, warning, success, banner_colour
 
 ########################
 # argument parsing     #
@@ -77,6 +77,21 @@ arg_parser.add_argument(
     type=int,
     help='Remove HTTP codes for found resources. Space delimited list')
 
+arg_parser.add_argument(
+    '--save_ext',
+    type=str,
+    default='html',
+    choices=['html', 'txt', 'pdf'],
+    help='Set the extension to save the report as'
+)
+
+arg_parser.add_argument(
+    '--all_scans',
+    default=False,
+    action='store_true',
+    help='Show details of all previous scans'
+)
+
 args = arg_parser.parse_args()
 
 
@@ -94,18 +109,20 @@ class WebScanner():
     """
 
     def __init__(self, arg_parse):
+        self.cmd_args = arg_parse
         self.options = {}
         self.modules = []
         self.scan_types = []
 
-        self.report_gen = ReportGenerator(self)
-
         self._parse_cmd_line_args(arg_parse)
         self._init_database()
         self._load_config()
+        self.report_gen = ReportGenerator(self)
         self._banner()
+        self._run()
 
-        if arg_parse.generator:
+    def _run(self):
+        if self.cmd_args.generator:
             info('Starting text generation...')
             sleep(2)
 
@@ -120,9 +137,13 @@ class WebScanner():
             # clear the screen because tensorflow creates a lot of output
             clear_screen()
             info('Completed text generation')
+        elif self.cmd_args.all_scans:
+            info(f'Generating report...')
+            scan_id = self.show_previous_scans()
+            self.report_gen.generate_report(scan_id)
         else:
             self.run_modules()
-            self.report_gen.generate_html()
+            self.report_gen.generate_report(self.id)
             self.db.remove_generated_text()
 
     def _load_config(self):
@@ -237,8 +258,14 @@ class WebScanner():
         # user crawl the target manually through a web browser
         self.options['manual_crawl'] = arg_parse.manual_crawl
 
+        self.options['report_extension'] = arg_parse.save_ext
+
     def _init_database(self):
         self.db = DBManager()
+
+        # if we are generating text or reports dont create scan entry
+        if self.cmd_args.generator or self.cmd_args.all_scans:
+            return
 
         # save the scan in the database
         self.id = self.db.save_new_scan(self)
@@ -349,6 +376,29 @@ class WebScanner():
             modules_to_run.append(self.modules[module_name])
 
         return modules_to_run
+
+    def show_previous_scans(self):
+        info('Previous scans:')
+
+        scans_table = self.db.get_scan_db().table('scans')
+        scans = scans_table.all()
+
+        for scan in scans:
+            success(f'ID: {scan.doc_id}, Host: {scan["host"]}, Port: {scan["port"]}, Time: {scan["timestamp"]}', prepend='  ')
+
+        check = False
+        while not check:
+            try:
+                choice = int(input('> '))
+
+                if not self.db.scan_exists(choice):
+                    warning(f'Scan ID: {choice} does not exist')
+                else:
+                    check = True
+            except (ValueError):
+                pass
+
+        return choice
 
 
 if __name__ == '__main__':

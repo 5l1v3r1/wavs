@@ -71,7 +71,7 @@ class BaseModule:
         """
         pass
 
-    def get_report_data(self):
+    def get_report_data(self, scan_id=None):
         """ This method is called when a report is being generated, it should
             take the results it has found and construct a report 'section' to
             be included in the report
@@ -84,11 +84,17 @@ class BaseModule:
             return
 
         table = self.main.db.get_scan_db().table(table_name)
-        results = table.search(where('scan_id') == self.main.id)
+
+        if not scan_id:
+            scan_id = self.main.id
+        results = table.search(where('scan_id') == scan_id)
 
         final = []
         for r in results:
             final.extend(r['results'])
+
+        if len(final) == 0:
+            return None
 
         return {'module': self.info['name'],
                 'results': final,

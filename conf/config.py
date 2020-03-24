@@ -7,7 +7,7 @@ banner = """
      :MM;    :MM;  A'     VML  :MM;    Mb     dM
       VF      VF .AMA.   .AMMA. VF     P"Ybmmd"
 
-Web Application Vulnerability Scanner by Ryan Ritchie
+       Web Application Vulnerability Scanner
 """
 
 # configuration options that persist between different scans
@@ -128,6 +128,10 @@ config = {
             "HTML Parser",
             "SQL Injection Scanner",
             "Local File Inclusion"
+        ],
+        "no_vuln": [
+            "File Scanner",
+            "HTML Parser"
         ]
     }
 }

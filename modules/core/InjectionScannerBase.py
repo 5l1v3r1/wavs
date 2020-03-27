@@ -60,7 +60,7 @@ class InjectionScannerBase(BaseModule):
         if any([s in page_text for s in search_strings]):
             if not (page, param) in self.injectable_params:
                 if self.main.options['verbose']:
-                    success(f'Vulnerable parameter: {page}/{param} ({injection})',
+                    success(f'Vulnerable parameter: {page} - {param} ({injection})',
                             prepend='  ')
                 # self.injectable_params.append((page, param, injection))
                 self.injectable_params.append({'method': method,

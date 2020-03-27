@@ -23,61 +23,71 @@ from util_functions import info, warning, success, banner_colour
 # argument parsing     #
 ########################
 arg_parser = argparse.ArgumentParser()
-arg_parser.add_argument(
+subparsers = arg_parser.add_subparsers(dest='subcommand')
+
+scan_parser = subparsers.add_parser("scan", help='Options to control a vulnerability scan')
+tgen_parser = subparsers.add_parser("generate", help='Options to generate text payloads')
+report_parser = subparsers.add_parser("report", help='Options to generate reports')
+db_parser = subparsers.add_parser("database", help='Options to control databases')
+
+###########################################
+# command line arguments for scan command #
+###########################################
+scan_parser.add_argument(
     'host',
     help='The url of the web application to be scanned, including protocol')
 
-arg_parser.add_argument(
+scan_parser.add_argument(
+    '-b',
+    '--base_dir',
+    default='',
+    help='The base directory of the application to be scanned'
+)
+
+scan_parser.add_argument(
     '-p',
     '--port',
     type=int,
     default=0,
     help='The port the web application is running on')
 
-arg_parser.add_argument(
+scan_parser.add_argument(
     '-c',
     '--cookies',
     help='Cookies to include in requests, <cookie_name>=<cookie_value>,[...]')
 
-arg_parser.add_argument(
+scan_parser.add_argument(
     '-r',
     '--restrict_paths',
     default='',
     help='Paths which should not be visited, /restrict/path/')
 
-arg_parser.add_argument(
-    '-s',
-    '--scan_type',
+scan_parser.add_argument(
+    '-t',
+    '--type',
     default='default',
     help='Determines which modules run and in what order. From config')
 
-arg_parser.add_argument(
-    '-g',
-    '--generator',
-    default=False,
-    action='store_true',
-    help='Runs the attack string text generator')
-
-arg_parser.add_argument(
+scan_parser.add_argument(
     '-m',
     '--manual_crawl',
     default=False,
     action='store_true',
     help='Use a proxy to manually crawl the target')
 
-arg_parser.add_argument(
+scan_parser.add_argument(
     '--add_success_codes',
     nargs='+',
     type=int,
     help='Add HTTP codes for a found resources. Space delimited list')
 
-arg_parser.add_argument(
+scan_parser.add_argument(
     '--remove_success_codes',
     nargs='+',
     type=int,
     help='Remove HTTP codes for found resources. Space delimited list')
 
-arg_parser.add_argument(
+scan_parser.add_argument(
     '--save_ext',
     type=str,
     default='html',
@@ -85,11 +95,52 @@ arg_parser.add_argument(
     help='Set the extension to save the report as'
 )
 
-arg_parser.add_argument(
-    '--all_scans',
+scan_parser.add_argument(
+    '-o',
+    '--outfile',
     default=False,
     action='store_true',
-    help='Show details of all previous scans'
+    help='The path to save the report to'
+)
+
+################################################
+# command line arguments for generator command #
+################################################
+tgen_parser.add_argument(
+    '-g',
+    '--generator',
+    default=False,
+    action='store_true',
+    help='Runs the attack string text generator')
+
+#############################################
+# command line arguments for report command #
+#############################################
+report_parser.add_argument(
+    '-o',
+    '--outfile',
+    help='The full path of the report file to be created, including extension'
+)
+
+###############################################
+# command line arguments for database command #
+###############################################
+db_parser.add_argument(
+    '--reset',
+    action='store_true',
+    help='Reset both wordlist and scans database. Deletes all data from scans, resets wordlist count'
+)
+
+db_parser.add_argument(
+    '--reset_wordlist',
+    action='store_true',
+    help='Reset the count of the wordlist database'
+)
+
+db_parser.add_argument(
+    '--reset_scans',
+    action='store_true',
+    help='Delete all previous scan data'
 )
 
 args = arg_parser.parse_args()
@@ -114,37 +165,74 @@ class WebScanner():
         self.modules = []
         self.scan_types = []
 
-        self._parse_cmd_line_args(arg_parse)
-        self._init_database()
         self._load_config()
-        self.report_gen = ReportGenerator(self)
-        self._banner()
-        self._run()
+        if self.cmd_args.subcommand == 'scan':
+            self.db = DBManager()
 
-    def _run(self):
-        if self.cmd_args.generator:
-            info('Starting text generation...')
-            sleep(2)
+            self._parse_cmd_line_args(arg_parse)
+            self._init_database()
+            self.report_gen = ReportGenerator(self)
+            self._banner()
+            self._run_scan()
 
-            # suppress debugging output from tensorflow
-            os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
+        elif self.cmd_args.subcommand == 'report':
+            self._banner()
+            self._run_text_generator()
 
-            # start text generation
-            from utils.TextGenerator import TextGenerator
-            self.text_generator = TextGenerator(self)
-            self.run_text_generation()
+        elif self.cmd_args.subcommand == 'generate':
+            self.report_gen = ReportGenerator(self)
 
-            # clear the screen because tensorflow creates a lot of output
-            clear_screen()
-            info('Completed text generation')
-        elif self.cmd_args.all_scans:
-            info(f'Generating report...')
-            scan_id = self.show_previous_scans()
-            self.report_gen.generate_report(scan_id)
-        else:
-            self.run_modules()
-            self.report_gen.generate_report(self.id)
-            self.db.remove_generated_text()
+            self._banner()
+            self._run_report_generator()
+
+        elif self.cmd_args.subcommand == 'database':
+            self.db = DBManager()
+
+            self._banner()
+            self._database_reset()
+
+    def _run_scan(self):
+        # loop through all modules in current scan and run them
+        self.run_modules()
+
+        # generate a report for the current scan
+        self.report_gen.generate_report(self.id)
+
+        # remove any payloads generated by text generator
+        self.db.remove_generated_text()
+
+    def _run_text_generator(self):
+        info('Starting text generation...')
+        sleep(2)
+
+        # suppress debugging output from tensorflow
+        os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
+
+        # start text generation
+        from utils.TextGenerator import TextGenerator
+        self.text_generator = TextGenerator(self)
+        self.run_text_generation()
+
+        # clear the screen because tensorflow creates a lot of output
+        clear_screen()
+        info('Completed text generation')
+
+    def _run_report_generator(self):
+        info(f'Generating report...')
+        scan_id = self.show_previous_scans()
+        self.report_gen.generate_report(scan_id)
+
+    def _database_reset(self):
+        info('Resetting internal databases...')
+        if self.cmd_args.reset:
+            self.db.reset_wordlist()
+            self.db.reset_scans()
+
+        elif self.cmd_args.reset_scans:
+            self.db.reset_scans()
+
+        elif self.cmd_args.reset_wordlist:
+            self.db.reset_wordlist()
 
     def _load_config(self):
         """ loads in the configuration data contained in conf/config.py then
@@ -218,6 +306,15 @@ class WebScanner():
         else:
             self.port = arg_parse.port
 
+        # make sure the base directory starts with a /
+        # if base_dir is '' we dont need to worry
+        if arg_parse.base_dir:
+            self.base_dir = arg_parse.base_dir
+            if self.base_dir[0] != '/':
+                self.base_dir = f'/{self.base_dir}'
+        else:
+            self.base_dir = arg_parse.base_dir
+
         # if cookies are supplied, parses the cookies into a dictionary which
         # is required by the requests module
         self.cookies = cookie_parse(arg_parse.cookies)
@@ -225,7 +322,7 @@ class WebScanner():
         # store the scan type, must be a value listed in the config.json file
         # under 'scan_types', if not specified by command line argument the
         # 'default' scan type is stored
-        self.scan_type = arg_parse.scan_type
+        self.scan_type = arg_parse.type
 
         # parse any restricted paths passed in from command line
         # these paths on the target application that should not be crawled
@@ -261,12 +358,6 @@ class WebScanner():
         self.options['report_extension'] = arg_parse.save_ext
 
     def _init_database(self):
-        self.db = DBManager()
-
-        # if we are generating text or reports dont create scan entry
-        if self.cmd_args.generator or self.cmd_args.all_scans:
-            return
-
         # save the scan in the database
         self.id = self.db.save_new_scan(self)
 
@@ -276,7 +367,7 @@ class WebScanner():
             @params:             None
             @returns (string):   a url to access the target web application
         """
-        return f'{self.proto}{self.host}:{self.port}'
+        return f'{self.proto}{self.host}:{self.port}{self.base_dir}'
 
     def _banner(self):
         """ displays the program banner on startup

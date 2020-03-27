@@ -56,6 +56,7 @@ class FileScanner(BaseModule):
                         path = f'{file}{extension}'
 
                     # we dont want to visit restricted paths
+                    print(self.main.restrict_paths)
                     if path not in self.main.restrict_paths:
                         final_list.append(path)
 

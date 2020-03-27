@@ -19,6 +19,39 @@ class HTMLParser(BaseModule):
     def __init__(self, main):
         BaseModule.__init__(self, main)
 
+    def _resolve_path(self, base_path, path):
+        if path:
+            if path[-1] == '.' or path[-1] == '#':
+                path = path[:-1]
+
+        if not "../" in path:
+            final = f'{base_path}{path}'
+
+            if final:
+                if final[0] == '/':
+                    final = final[1:]
+                return final
+            else:
+                return final
+
+        # vulnerabilities/brute/
+        # ../../vulnerabilities/fi/.
+
+        dir_ups = path.count('../')
+        new_path = path.replace('../', '')
+        explode_base = base_path.split('/')
+        explode_base = list(filter(('').__ne__, explode_base))
+        new_base = explode_base[:-dir_ups]
+
+        final = f'{"/".join(new_base)}/{new_path}'
+
+        if final:
+            if final[0] == '/':
+                final = final[1:]
+            return final
+        else:
+            return final
+
     def _extract_link_params(self, link, directory_path):
         assert('?' in link)
 
@@ -28,8 +61,10 @@ class HTMLParser(BaseModule):
         for param in params.split('&'):
             stored_params.append(param.split('=')[0])
 
+        action = self._resolve_path(directory_path, action)
+
         return {'method': 'GET',
-                'action': directory_path + action,
+                'action': action,
                 'params': stored_params}
 
     def _extract_links(self, html, directory_path):
@@ -93,14 +128,22 @@ class HTMLParser(BaseModule):
             return []
 
         for form in forms:
+            method = form.get('method')
+            action = form.get('action')
+
+            if not form.get('method') or not form.get('action'):
+                continue
+
             form_params = []
             for field in form.find_all('input'):
                 field_name = self._extract_form_params(form, field)
                 if field_name:
                     form_params.append(field_name)
 
-            all_forms.append({'method': form.get('method'),
-                              'action': directory_path + form.get('action'),
+            action = self._resolve_path(directory_path, action)
+
+            all_forms.append({'method': method,
+                              'action': f'{action}',
                               'params': form_params})
 
         return all_forms

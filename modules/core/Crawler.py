@@ -30,6 +30,9 @@ class Crawler(BaseModule):
             else:
                 linked_page = link
 
+            if linked_page in self.main.restrict_paths:
+                return
+
             # check that the page actually exists first
             url = f'{self.main.get_host_url_base()}/{linked_page}'
             page_exists = http_get_request(url, self.main.cookies).status_code

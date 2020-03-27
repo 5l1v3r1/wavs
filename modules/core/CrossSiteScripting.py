@@ -50,8 +50,11 @@ class CrossSiteScripting(InjectionScannerBase):
         info("Searching for cross site scripting...")
 
         # load in a list of lfi attach strings
-        self.attack_strings = self.main.db.get_wordlist(
-            self.info['wordlist_name'])
+        #self.attack_strings = self.main.db.get_wordlist(
+        #    self.info['wordlist_name'])
+
+        self.attack_strings = ['<script>alert(1)</script>',
+                               '<img srx="x" onerror="alert(1)>"']
 
         # the search strings will be the attack strings themselves
         # because python will not interpret any javascript

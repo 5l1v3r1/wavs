@@ -2,7 +2,7 @@ import sqlite3
 import os.path
 from sqlite3 import Error
 from datetime import datetime
-from util_functions import warning
+from util_functions import warning, success
 from tinydb import TinyDB, Query
 # TODO: use prepared statements for SQL
 
@@ -59,6 +59,20 @@ class DBManager:
         })
 
         return id
+
+    def reset_scans(self):
+        scans = self.get_scan_db()
+        scans.purge_tables()
+
+        success('scans database has been reset successfully', prepend='  ')
+
+    def reset_wordlist(self):
+        conn = self.get_connection(self.db_paths['wordlist'])
+
+        sql_statement = 'UPDATE wordlist SET count = 0 WHERE count > 0'
+        self.execute_statement(conn, sql_statement)
+
+        success('wordlist database has been reset successfully', prepend='  ')
 
     def get_connection(self, database_file):
         """ create the database connection to the sqlite database

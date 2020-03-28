@@ -67,6 +67,8 @@ config = {
          "path": "modules/core/HTMLParser"},
         {"name": "SQL Injection Scanner",
          "path": "modules/core/SQLInjectionScanner"},
+        {"name": "SQL Injection Scanner - Blind",
+         "path": "modules/core/SQLInjectionScanner_Blind"},
         {"name": "Local File Inclusion",
          "path": "modules/core/LocalFileInclusion"},
         {"name": "Cross Site Scripting",
@@ -92,6 +94,7 @@ config = {
             "Site Crawler",
             "HTML Parser",
             "SQL Injection Scanner",
+            "SQL Injection Scanner - Blind",
             "Local File Inclusion",
             "Cross Site Scripting",
             "Cross Site Request Forgery",
@@ -103,7 +106,8 @@ config = {
         "sql": [
             "File Scanner",
             "HTML Parser",
-            "SQL Injection Scanner"
+            "SQL Injection Scanner",
+            "SQL Injection Scanner - Blind"
         ],
         "lfi": [
             "File Scanner",

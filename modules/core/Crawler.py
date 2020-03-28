@@ -18,10 +18,18 @@ class Crawler(BaseModule):
     def __init__(self, main):
         BaseModule.__init__(self, main)
 
-    def _parse_link(self, link):
+    def _parse_link(self, page, link):
         # remove blanks and param links
         if not link or link[0] == '?':
             return
+
+        # ignore relative paths
+        if '../' in link:
+            return
+
+        # references to same page
+        if link in ['#', '.']:
+            link = page
 
         if not any(x in link for x in ['http://', 'https://']):
             if '?' in link:
@@ -52,7 +60,7 @@ class Crawler(BaseModule):
         # parse all hyperlinks
         for link in soup.find_all('a'):
             href = link.get('href')
-            parsed_href = self._parse_link(href)
+            parsed_href = self._parse_link(page, href)
 
             if parsed_href:
                 return_links.append(parsed_href)
@@ -60,7 +68,7 @@ class Crawler(BaseModule):
         # parse all forms
         for form in soup.find_all('form'):
             action = form.get('action')
-            parsed_action = self._parse_link(action)
+            parsed_action = self._parse_link(page, action)
 
             if parsed_action:
                 return_links.append(parsed_action)

@@ -3,6 +3,7 @@ from util_functions import info, success, warning
 import datetime
 import textwrap
 from weasyprint import HTML
+from cgi import escape
 
 
 class ReportGenerator:
@@ -145,9 +146,19 @@ class HTMLReportGenerator(BaseGenerator):
         data = self._gather_scan_details()
 
         html = f"""
-        <div class='alert alert-success text-center' role='alert'>
-            Host: {data['host']} | Port: {data['port']} | Start: {datetime.datetime.strptime(data['timestamp'], '%Y-%m-%d %H:%M:%S.%f').strftime("%d/%m/%Y-%H:%M:%S")}
-        </div>"""
+        <h4 class="text-center">
+        <span class="badge badge-dark">
+            <span class="badge badge-info">
+                Host: {data['host']}
+            </span>
+            <span class="badge badge-info">
+                Port: {data['port']}
+            </span>
+            <span class="badge badge-info">
+                Start: {datetime.datetime.strptime(data['timestamp'], '%Y-%m-%d %H:%M:%S.%f').strftime("%d/%m/%Y-%H:%M:%S")}
+            </span>
+        </span>
+        </h4>"""
         self.add_text(html)
 
     def add_summary(self):
@@ -193,7 +204,7 @@ class HTMLReportGenerator(BaseGenerator):
         table_html += f'<thead class="{thead_class}"><tr><th>{report_data["level"]}</th><th>{report_data["vulnerability"]}</th></tr></thead>'
         table_html += f'<tr><td>Description</td><td>{report_data["description"]}</td></tr>'
         table_html += f'<tr><td>Mitigation</td><td>{self.add_list(report_data["mitigation"])}</td></tr>'
-        table_html += f'<tr><td>CWE Link</td><td><a href="{report_data["link"]}" target="_blank">{report_data["link"]}</a></td></tr>'
+        table_html += f'<tr><td>CWE Link</td><td><a href="{report_data["link"]}" target="_blank"><span class="badge badge-success">{report_data["link"]}</span></a></td></tr>'
         table_html += '<thead class="thead-light"><tr><th colspan="2">Instances found</th></tr></thead>'
         table_html += '<tr><td colspan="2"><div class="card-deck">'
         for result in results:
@@ -204,9 +215,9 @@ class HTMLReportGenerator(BaseGenerator):
 
     def add_vuln_detail(self, vuln):
         html = f"""
-        <div class="card border-warning mb-3" style="max-width: 32rem;">
+        <div class="card border-danger mb-3" style="max-width: 32rem;">
           <div class="card-header">{vuln['page']}</div>
-          <div class="card-body text-warning">
+          <div class="card-body text-danger">
             <p class="card-text">
                 <p>URL: {vuln['page']}<br>
                 Method: {vuln['method']}<br>
@@ -214,7 +225,8 @@ class HTMLReportGenerator(BaseGenerator):
         if vuln['parameter']:
             html += f'Parameter: {vuln["parameter"]}<br>'
         if vuln['payload']:
-            html += f'Payload: {vuln["payload"]}<br>'
+            # need to use escape function so we dont xss ourselves
+            html += f'Payload: {escape(vuln["payload"])}<br>'
 
         html += '</p></p></div></div>'
         return html

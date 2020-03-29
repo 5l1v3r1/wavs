@@ -25,7 +25,7 @@ class HTMLParser(BaseModule):
                 path = path[:-1]
 
         if not "../" in path:
-            final = f'{base_path}{path}'
+            final = f'{path}'
 
             if final:
                 if final[0] == '/':
@@ -52,10 +52,13 @@ class HTMLParser(BaseModule):
         else:
             return final
 
-    def _extract_link_params(self, link, directory_path):
+    def _extract_link_params(self, page, link, directory_path):
         assert('?' in link)
 
         action, params = link.split('?')
+
+        if not action:
+            action = page
 
         stored_params = []
         for param in params.split('&'):
@@ -67,7 +70,7 @@ class HTMLParser(BaseModule):
                 'action': action,
                 'params': stored_params}
 
-    def _extract_links(self, html, directory_path):
+    def _extract_links(self, page, html, directory_path):
         """ extract anchor links out of html data
 
             :param html:        a beautiful soup html object
@@ -91,12 +94,12 @@ class HTMLParser(BaseModule):
                 continue
 
             # extract the parameters from the link
-            links.append(self._extract_link_params(link.get('href'),
+            links.append(self._extract_link_params(page, link.get('href'),
                                                    directory_path))
 
         return links
 
-    def _extract_form_params(self, form, field):
+    def _extract_form_params(self, page, form, field):
         ''' from an html form, build param data
 
             :param form:        a beautiful soup form object
@@ -105,16 +108,15 @@ class HTMLParser(BaseModule):
         '''
 
         action = form.get('action')
-
         if not action:
-            return None
+            action = page
 
         if any(x in action for x in ['http://', 'https://']):
             return None
 
         return field.get('name')
 
-    def _extract_forms(self, html, directory_path):
+    def _extract_forms(self, page, html, directory_path):
         """ extract params from html forms
 
             :param html:        a beautiful soup html object
@@ -131,12 +133,17 @@ class HTMLParser(BaseModule):
             method = form.get('method')
             action = form.get('action')
 
-            if not form.get('method') or not form.get('action'):
+            if not method:
                 continue
 
+            # if there is no action set for the form then it should be
+            # submitted back to the page it is on
+            if not action or action == '#':
+                action = page
+
             form_params = []
-            for field in form.find_all('input'):
-                field_name = self._extract_form_params(form, field)
+            for field in form.find_all(['input', 'textarea', 'select', 'radio']):
+                field_name = self._extract_form_params(page, form, field)
                 if field_name:
                     form_params.append(field_name)
 
@@ -169,8 +176,8 @@ class HTMLParser(BaseModule):
             directory_path = '/'.join(path_split[:-1]) + '/'
 
         params = []
-        params.extend(self._extract_links(soup, directory_path))
-        params.extend(self._extract_forms(soup, directory_path))
+        params.extend(self._extract_links(webpage, soup, directory_path))
+        params.extend(self._extract_forms(webpage, soup, directory_path))
 
         return params
 

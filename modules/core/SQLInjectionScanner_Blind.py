@@ -1,10 +1,9 @@
 import concurrent.futures
-from util_functions import info, warning, http_get_request, http_post_request, success
-from multiprocessing import Pool
-from modules.core.BaseModule import BaseModule
+from util_functions import info, http_get_request, http_post_request, success
+from modules.core.SQLInjectionScanner import SQLInjectionScanner
 
 
-class SQLInjectionScanner_Blind(BaseModule):
+class SQLInjectionScanner_Blind(SQLInjectionScanner):
     """ This module tests a web application for the SQL injection vulnerability
         it does this by injecting SQL 'attack' strings into parameters and
         checking the resulting webpage for SQL error messages.
@@ -46,45 +45,7 @@ class SQLInjectionScanner_Blind(BaseModule):
     }
 
     def __init__(self, main):
-        BaseModule.__init__(self, main)
-
-    def _save_scan_results(self, results, update_count=True):
-        """ used to save the results of the module to the database
-
-            @param: results -       a list of the results from the module,
-                                    should be a list of text
-        """
-        # get the successful injections from results
-        injections = [(p_dict['payload']) for p_dict in results]
-
-        table = self.main.db.get_scan_db().table(self.info['db_table_name'])
-        table.insert({
-            "scan_id": self.main.id,
-            "results": results
-        })
-
-        if update_count:
-            self.main.db.update_count(injections, self.info['wordlist_name'])
-
-    def _construct_get_url(self, page, params):
-        url = f'{self.main.get_host_url_base()}/{page}?'
-
-        # http://localhost:80/index.php?username=test&password=test&submit=submit
-
-        for param in params:
-            url += f'{param}=test&'
-
-        # remove the last &
-        url = url[:-1]
-
-        return url
-
-    def _construct_post_params(self, params):
-        param_dict = {}
-        for p in params:
-            param_dict[p] = 'test'
-
-        return param_dict
+        SQLInjectionScanner.__init__(self, main)
 
     def _run_thread(self, param):
         method = param['method']

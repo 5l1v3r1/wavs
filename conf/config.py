@@ -71,12 +71,14 @@ config = {
          "path": "modules/core/SQLInjectionScanner_Blind"},
         {"name": "Local File Inclusion",
          "path": "modules/core/LocalFileInclusion"},
-        {"name": "Cross Site Scripting",
-         "path": "modules/core/CrossSiteScripting"},
+        {"name": "Cross Site Scripting - Reflected",
+         "path": "modules/core/CrossSiteScripting_Reflected"},
+        {"name": "Cross Site Scripting - Stored",
+         "path": "modules/core/CrossSiteScripting_Stored"},
         {"name": "Cross Site Request Forgery",
          "path": "modules/core/CSRF"},
         {"name": "Information Disclosure",
-         "path": "modules/core/InformationDisclosure"}
+         "path": "modules/core/InformationDisclosure"},
     ],
 
     ################
@@ -96,7 +98,8 @@ config = {
             "SQL Injection Scanner",
             "SQL Injection Scanner - Blind",
             "Local File Inclusion",
-            "Cross Site Scripting",
+            "Cross Site Scripting - Reflected",
+            "Cross Site Scripting - Stored",
             "Cross Site Request Forgery",
             "Information Disclosure"
           ],
@@ -116,8 +119,10 @@ config = {
         ],
         "xss": [
             "File Scanner",
+            "Site Crawler",
             "HTML Parser",
-            "Cross Site Scripting"
+            "Cross Site Scripting - Reflected",
+            "Cross Site Scripting - Stored"
         ],
         "csrf": [
             "File Scanner",

@@ -1,7 +1,9 @@
+import os.path
+
 from modules.core.BaseModule import BaseModule
 from bs4 import BeautifulSoup
 
-from util_functions import success, info
+from util_functions import success, info, highlight
 from util_functions import http_get_request
 from utils.InterceptingProxy import InterceptingProxy
 
@@ -77,15 +79,40 @@ class Crawler(BaseModule):
 
     def proxy_response_handle(self, resp, path):
         if resp.status_code in self.main.success_codes:
+            # get rid of any GET parameters in the path
             if '?' in path:
                 path = path.split('?')[0]
 
-            # if '/' in path:
-            #     path = path.replace('/', '')
+            # we dont want to find files in restricted paths
+            if path not in self.main.restrict_paths:
 
-            if path not in self.manual_found_pages:
-                self.manual_found_pages.append(path)
-                # success(f'Found new page: {path}', prepend='    ')
+                # we dont want files which weve already found
+                if path not in self.manual_found_pages:
+                    # get the filename
+                    file = os.path.normpath(path).split(os.path.sep)[-1]
+
+                    if '.' in file:
+                        # get the file extension
+                        ext = file.split('.')[-1]
+
+                        # we dont want file types not in the extension list
+                        if f'.{ext}' in self.main.file_extensions:
+                            self.manual_found_pages.append(path)
+                            success(f'Found new page: {path}', prepend='    ')
+                    else:
+                        self.manual_found_pages.append(path)
+                        success(f'Found new page: {path}', prepend='    ')
+
+    def auto_crawl(self):
+        # loop through all pages found so far
+        loop_pages = self.found_pages
+        for page in loop_pages:
+            for link in self._parse_links(page):
+                if link not in loop_pages:
+                    success(f'Found page: {link}', prepend='  ')
+                    loop_pages.append(link)
+
+        self._save_scan_results(loop_pages, update_count=False)
 
     def run_module(self):
         info('Crawling links...')
@@ -98,22 +125,16 @@ class Crawler(BaseModule):
             proxy_port = self.main.options['proxy_port']
 
             # TODO: make config variable for port
-            info(f'Proxy server started on http://127.0.0.1:{proxy_port}',
-                 prepend='  ')
-            info('Use browser to crawl target. CTRL+C to exit.',
-                 prepend='  ')
+            highlight(f'Proxy server started on http://127.0.0.1:{proxy_port}',
+                      prepend='  ')
+            highlight('Use browser to crawl target. CTRL+C to exit.',
+                      prepend='  ')
 
             proxy = InterceptingProxy(self.main.host, proxy_port, self)
             proxy.start()
 
-            self._save_scan_results(self.manual_found_pages)
-        else:
-            # loop through all pages found so far
-            loop_pages = self.found_pages
-            for page in loop_pages:
-                for link in self._parse_links(page):
-                    if link not in loop_pages:
-                        success(f'Found page: {link}', prepend='  ')
-                        loop_pages.append(link)
+            self._save_scan_results(self.manual_found_pages, update_count=False)
 
-            self._save_scan_results(loop_pages, update_count=False)
+            self.auto_crawl()
+        else:
+            self.auto_crawl()

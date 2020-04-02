@@ -44,7 +44,7 @@ config = {
         "text_generator_temp": 0.7,
 
         # the port the HTTP proxy runs on when using manual crawling
-        "proxy_port": 8080
+        "proxy_port": 8081
     },
 
     ################
@@ -77,6 +77,8 @@ config = {
          "path": "modules/core/CrossSiteScripting_Stored"},
         {"name": "Cross Site Request Forgery",
          "path": "modules/core/CSRF"},
+        {"name": "Command Injection Scanner",
+         "path": "modules/core/CommandInjectionScanner"},
         {"name": "Information Disclosure",
          "path": "modules/core/InformationDisclosure"},
     ],
@@ -101,13 +103,19 @@ config = {
             "Cross Site Scripting - Reflected",
             "Cross Site Scripting - Stored",
             "Cross Site Request Forgery",
+            "Command Injection Scanner",
             "Information Disclosure"
           ],
         "initial": [
             "Initial Scanner"
           ],
+        "crawl": [
+            "File Scanner",
+            "Site Crawler"
+        ],
         "sql": [
             "File Scanner",
+            "Site Crawler",
             "HTML Parser",
             "SQL Injection Scanner",
             "SQL Injection Scanner - Blind"
@@ -134,9 +142,9 @@ config = {
         ],
         "test": [
             "File Scanner",
+            "Site Crawler",
             "HTML Parser",
-            "SQL Injection Scanner",
-            "Local File Inclusion"
+            "Command Injection Scanner"
         ],
         "no_vuln": [
             "File Scanner",

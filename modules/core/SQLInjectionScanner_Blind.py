@@ -73,7 +73,7 @@ class SQLInjectionScanner_Blind(SQLInjectionScanner):
                     check_time = test_time - normal_time
                     if check_time.total_seconds() >= 5.0:
                         if self.main.options['verbose']:
-                            success(f'Vulnerable parameterg: {page} - {p} ({injection})',
+                            success(f'Vulnerable parameter: {page} - {p} ({injection})',
                                     prepend='  ')
                         # self.injectable_params.append((page, param, injection))
                         self.injectable_params.append({'method': method,
@@ -100,7 +100,7 @@ class SQLInjectionScanner_Blind(SQLInjectionScanner):
                     check_time = test_time - normal_time
                     if check_time.total_seconds() >= 5.0:
                         if self.main.options['verbose']:
-                            success(f'Vulnerable parameterp: {page} - {p} ({injection})',
+                            success(f'Vulnerable parameter: {page} - {p} ({injection})',
                                     prepend='  ')
                         # self.injectable_params.append((page, param, injection))
                         self.injectable_params.append({'method': method,

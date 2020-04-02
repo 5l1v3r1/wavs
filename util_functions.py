@@ -65,7 +65,7 @@ def http_get_request(url, cookies):
 
     except (requests.exceptions.ConnectionError, requests.exceptions.Timeout):
         warning(f'Server at {url} is not responding')
-        return 1
+        return None
 
     return r
 
@@ -82,7 +82,7 @@ def http_post_request(url, post_params, cookies):
 
     except (requests.exceptions.ConnectionError, requests.exceptions.Timeout):
         warning(f'Server at {url} is not responding')
-        return 1
+        return None
 
     return r
 
@@ -112,14 +112,6 @@ def banner_colour(banner):
 
 
 def _print_status(message, type, prepend):
-    assert(type in ['success', 'warning', 'info'])
-
-    # TODO: load in verbosity option from config file
-    # 0 - quiet mode (default): dont print anything
-    # 1 - print mode: print messages to stdout
-    # 2 - log mode: print to stdout and log file
-    VERBOSITY = 1
-
     if type == 'success':
         colour = Fore.GREEN
         status_code = '+'
@@ -129,10 +121,11 @@ def _print_status(message, type, prepend):
     elif type == 'info':
         colour = Fore.YELLOW
         status_code = '*'
+    elif type == 'highlight':
+        colour = Fore.CYAN
+        status_code = '!'
 
-    # TODO: sort this out ->
-    if VERBOSITY or type == 'warning':
-        print(colour + f'{prepend}[{status_code}] {message}\n', end='')
+    print(colour + f'{prepend}[{status_code}] {message}\n', end='')
 
 
 def success(message, prepend=''):
@@ -145,6 +138,10 @@ def warning(message, prepend=''):
 
 def info(message, prepend=''):
     _print_status(message, 'info', prepend)
+
+
+def highlight(message, prepend=''):
+    _print_status(message, 'highlight', prepend)
 
 
 class Test(unittest.TestCase):

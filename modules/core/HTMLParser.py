@@ -149,7 +149,7 @@ class HTMLParser(BaseModule):
 
             action = self._resolve_path(directory_path, action)
 
-            all_forms.append({'method': method,
+            all_forms.append({'method': method.upper(),
                               'action': f'{action}',
                               'params': form_params})
 

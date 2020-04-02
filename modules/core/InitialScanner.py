@@ -40,10 +40,7 @@ class InitialScanner(BaseModule):
         resp = http_get_request(f'{self.main.get_host_url_base()}',
                                 self.main.cookies)
 
-        if resp == 1:
-            return 1
-        else:
-            return 0
+        return resp is not None
 
     def _check_fuzzing(self):
         ''' checks if a random string returns a 200 success code.
@@ -66,10 +63,8 @@ class InitialScanner(BaseModule):
         # check for success code
         if resp.status_code == 200:
             warning(f'/{should_not_find} returned code 200. ')
-            return 1
-
-        # TODO: switch to fuzzing mode?
-        return 0
+            warning('Consider removing code 200 as success code')
+            exit()
 
     def _parse_robots(self):
         # construct url for robots.txt
@@ -119,20 +114,11 @@ class InitialScanner(BaseModule):
                 "results": file_paths
             })
 
-    def _run_thread(self):
-        pass
-
     def run_module(self):
         info('Running initial scans...')
-        checks = 0
 
-        if self._is_server_up():
+        if not self._is_server_up():
             exit()
 
-        checks += self._check_fuzzing()
-
-        if checks:
-            warning('Scanning cannot continue, check error messages')
-            exit()
-
+        self._check_fuzzing()
         self._parse_robots()

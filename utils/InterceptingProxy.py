@@ -1,6 +1,8 @@
 import requests
 import signal
+import http.cookies
 from http.server import HTTPServer, BaseHTTPRequestHandler
+from util_functions import success
 
 gl_crawler_base = None
 
@@ -12,26 +14,35 @@ class HTTPProxy(BaseHTTPRequestHandler):
 
     # GET
     def do_GET(self, body=True):
-        hostname = '127.0.0.1:80'
-        url = f'http://{hostname}{self.path}'
+        global gl_crawler_base
+
+        url = gl_crawler_base.main.get_host_url_base(False)
+        url = f'{url}/{self.path}'
+
         req_header = self.parse_headers(self.headers.as_string())
 
-        print(f'making a request to {url}')
-        resp = requests.get(url, headers=req_header, verify=False, stream=True)
+        # print(f'making a request to {url}')
+        resp = requests.get(url,
+                            allow_redirects=False,
+                            headers=req_header,
+                            verify=False,
+                            stream=True)
         self.proxy_response_handle(resp)
         return
 
     def do_POST(self):
+        global gl_crawler_base
+
         content_length = int(self.headers['Content-Length'])
         body = self.rfile.read(content_length)
 
-        hostname = '127.0.0.1:80'
-        url = f'http://{hostname}{self.path}'
+        url = gl_crawler_base.main.get_host_url_base(False)
+        url = f'{url}/{self.path}'
         req_header = self.parse_headers(self.headers.as_string())
-        print(body)
 
         resp = requests.post(
             url,
+            allow_redirects=False,
             headers=req_header,
             data=body,
             verify=False,
@@ -47,17 +58,31 @@ class HTTPProxy(BaseHTTPRequestHandler):
 
         # Send response status code
         self.send_response(resp.status_code)
-        print(len(resp.raw.data))
 
         for key in resp.headers:
+            # we skip set cookies as they are handled separately
+            # this is because the 'requests' module joins all set-cookie
+            # headers into one, which doesn't play well with 'send_header'
+            if key == 'Set-Cookie':
+                continue
+
             self.send_header(key, resp.headers[key])
+
+        scookies = resp.raw.headers.getlist('Set-Cookie')
+        for cookie in scookies:
+            self.send_header('Set-Cookie', cookie)
 
         # Send headers
         self.end_headers()
 
-        self.wfile.write(resp.raw.data)
+        try:
+            self.wfile.write(resp.raw.data)
+        except BrokenPipeError:
+            pass
 
     def parse_headers(self, headers_string):
+        global gl_crawler_base
+
         header_dict = {}
 
         # split the headers into lines
@@ -69,6 +94,11 @@ class HTTPProxy(BaseHTTPRequestHandler):
 
             k, v = header.split(': ')
             header_dict[k] = v
+
+            # add cookies to the cookie jar
+            if k == 'Cookie':
+                temp_cookies = http.cookies.SimpleCookie(v)
+                gl_crawler_base.main.cookies.update(temp_cookies)
 
         return header_dict
 

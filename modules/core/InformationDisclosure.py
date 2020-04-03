@@ -1,6 +1,4 @@
 import concurrent.futures
-from functools import partial
-from multiprocessing import Pool
 from modules.core.BaseModule import BaseModule
 
 from util_functions import http_get_request

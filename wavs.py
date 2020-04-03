@@ -175,10 +175,12 @@ class WebScanner():
         self.scan_types = []
 
         self._load_config()
+
+    def scan(self):
         if self.cmd_args.subcommand == 'scan':
             self.db = DBManager()
 
-            self._parse_cmd_line_args(arg_parse)
+            self._parse_cmd_line_args()
             self._init_database()
             self.report_gen = ReportGenerator(self)
             self._banner()
@@ -219,7 +221,7 @@ class WebScanner():
         os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
         # start text generation
-        from utils.TextGenerator import TextGenerator
+        from TextGenerator import TextGenerator
         self.text_generator = TextGenerator(self)
         self.run_text_generation()
 
@@ -288,13 +290,15 @@ class WebScanner():
         self.options['text_generator_temp'] = \
             config_dict['options']['text_generator_temp']
 
-    def _parse_cmd_line_args(self, arg_parse):
+    def _parse_cmd_line_args(self):
         """ parses the command line arguments passed into the program, and
             makes sure the arguments passed are valid.
 
             @param:     arg_parse   - argparser object containing cmd line args
             @returns:   None
         """
+
+        arg_parse = self.cmd_args
 
         # a protocol needs to be supplied in host and needs to be
         # either http or https, otherwise the program should exit
@@ -511,3 +515,4 @@ class WebScanner():
 
 if __name__ == '__main__':
     wscan = WebScanner(args)
+    wscan.scan()

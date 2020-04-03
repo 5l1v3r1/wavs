@@ -41,7 +41,8 @@ def load_module(package_name, class_name):
                 if obj.__name__ == class_name:
                     return obj
 
-            except AttributeError:
+            except AttributeError as e:
+                print(e)
                 pass
 
     except ImportError:

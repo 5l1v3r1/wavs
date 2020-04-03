@@ -3,7 +3,7 @@ from util_functions import info, success, warning
 import datetime
 import textwrap
 from weasyprint import HTML
-from cgi import escape
+from html import escape
 
 
 class ReportGenerator:

@@ -53,10 +53,10 @@ class DirectoryScanner(BaseModule):
         info('Searching for directories...')
 
         # load in the wordlist from database
-        # word_list = self.main.db.get_wordlist(self.info['wordlist_name'])
+        word_list = self.main.db.get_wordlist(self.info['wordlist_name'])
 
         # debug word list
-        word_list = ['', 'css', 'data', 'images', 'js']
+        # word_list = ['', 'css', 'data', 'images', 'js']
 
         # add an empty string so that the root directory is scanned
         # word_list.append('')

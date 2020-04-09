@@ -120,7 +120,7 @@ class InformationDisclosure(BaseModule):
 
         # wordlist = self.generate_full_wordlist()
         # debug wordlist
-        wordlist = ['index.php', 'contact.php', 'comments.php', 'about.html']
+        wordlist = []
         with concurrent.futures.ProcessPoolExecutor() as executor:
             files_found += list(executor.map(self._run_thread, wordlist))
 

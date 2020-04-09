@@ -141,10 +141,10 @@ config = {
             "Information Disclosure"
         ],
         "test": [
-            "File Scanner",
             "Site Crawler",
             "HTML Parser",
-            "Command Injection Scanner"
+            "Command Injection Scanner",
+            "Cross Site Request Forgery"
         ],
         "no_vuln": [
             "File Scanner",

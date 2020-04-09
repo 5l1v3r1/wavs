@@ -50,6 +50,9 @@ class Crawler(BaseModule):
                 return linked_page
 
     def _parse_links(self, page):
+        if page[0] == '/':
+            page = page[1:]
+
         # get the html
         url = f'{self.main.get_host_url_base()}/{page}'
         html = http_get_request(url, self.main.cookies).text
@@ -78,6 +81,9 @@ class Crawler(BaseModule):
         return return_links
 
     def proxy_response_handle(self, resp, path):
+        if self.main.base_dir in path:
+            path = path.replace(self.main.base_dir, '/')
+
         if resp.status_code in self.main.success_codes:
             # get rid of any GET parameters in the path
             if '?' in path:

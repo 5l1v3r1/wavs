@@ -56,7 +56,6 @@ class FileScanner(BaseModule):
                         path = f'{file}{extension}'
 
                     # we dont want to visit restricted paths
-                    print(self.main.restrict_paths)
                     if path not in self.main.restrict_paths:
                         final_list.append(path)
 
@@ -99,9 +98,9 @@ class FileScanner(BaseModule):
 
         files_found = []
 
-        # wordlist = self.generate_full_wordlist()
+        wordlist = self.generate_full_wordlist()
         # debug wordlist
-        wordlist = ['index.php', 'contact.php', 'comments.php', 'about.html']
+        # wordlist = ['index.php', 'contact.php', 'comments.php', 'about.html']
         with concurrent.futures.ProcessPoolExecutor() as executor:
             files_found += list(executor.map(self._run_thread, wordlist))
 

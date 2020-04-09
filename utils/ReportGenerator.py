@@ -206,7 +206,7 @@ class HTMLReportGenerator(BaseGenerator):
         table_html += f'<tr><td>Mitigation</td><td>{self.add_list(report_data["mitigation"])}</td></tr>'
         table_html += f'<tr><td>CWE Link</td><td><a href="{report_data["link"]}" target="_blank"><span class="badge badge-success">{report_data["link"]}</span></a></td></tr>'
         table_html += '<thead class="thead-light"><tr><th colspan="2">Instances found</th></tr></thead>'
-        table_html += '<tr><td colspan="2"><div class="card-deck">'
+        table_html += '<tr><td colspan="2"><div class="card-columns">'
         for result in results:
             table_html += self.add_vuln_detail(result)
         table_html += '</div></td></tr></table></p><br>'

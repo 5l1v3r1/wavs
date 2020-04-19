@@ -13,6 +13,7 @@ class CrossSiteScripting_Stored(InjectionScannerBase):
         "name":             "Cross Site Scripting - Stored",
         "desc":             "Checks for cross site scripting vulnerabilities",
         "reportable":       True,
+        "generate":         True,
         "db_table_name":    "xss_discovered_stored",
         "wordlist_name":    "xss_injection",
         "author":           "@ryan_ritchie",

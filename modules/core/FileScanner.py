@@ -18,6 +18,7 @@ class FileScanner(BaseModule):
         "db_table_name": "files_discovered",
         "wordlist_name": "file",
         "reportable": False,
+        "generate":   True,
         "desc": "Scans for files once ",
         "author": "@ryan_ritchie"
     }

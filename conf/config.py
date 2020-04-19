@@ -106,49 +106,41 @@ config = {
             "Command Injection Scanner",
             "Information Disclosure"
           ],
-        "initial": [
-            "Initial Scanner"
-          ],
-        "crawl": [
-            "File Scanner",
-            "Site Crawler"
+        "dir": [
+            "Directory Scanner"
         ],
         "sql": [
-            "File Scanner",
             "Site Crawler",
             "HTML Parser",
             "SQL Injection Scanner",
             "SQL Injection Scanner - Blind"
         ],
-        "lfi": [
-            "File Scanner",
-            "HTML Parser",
-            "Local File Inclusion"
-        ],
         "xss": [
-            "File Scanner",
             "Site Crawler",
             "HTML Parser",
             "Cross Site Scripting - Reflected",
             "Cross Site Scripting - Stored"
         ],
+        "os": [
+            "Site Crawler",
+            "HTML Parser",
+            "Command Injection Scanner"
+        ],
+        "lfi": [
+            "Site Crawler",
+            "HTML Parser",
+            "Local File Inclusion"
+        ],
         "csrf": [
-            "File Scanner",
+            "Site Crawler",
             "HTML Parser",
             "Cross Site Request Forgery"
-        ],
-        "info": [
-            "Information Disclosure"
         ],
         "test": [
             "Site Crawler",
             "HTML Parser",
-            "Command Injection Scanner",
-            "Cross Site Request Forgery"
-        ],
-        "no_vuln": [
-            "File Scanner",
-            "HTML Parser"
+            "SQL Injection Scanner",
+            "Cross Site Scripting - Reflected"
         ]
     }
 }

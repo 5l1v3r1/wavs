@@ -15,6 +15,7 @@ class LocalFileInclusion(InjectionScannerBase):
         "name":             "Local File Inclusion",
         "desc":             "Checks for local file inclusion vulnerability",
         "reportable":       True,
+        "generate":         True,
         "db_table_name":    "lfi_discovered",
         "wordlist_name":    "lfi_injection",
         "author":           "@ryan_ritchie",

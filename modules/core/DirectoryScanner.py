@@ -21,6 +21,7 @@ class DirectoryScanner(BaseModule):
         "db_table_name": "directories_discovered",
         "wordlist_name": "directory",
         "reportable": False,
+        "generate":   True,
         "desc": "Scans a web application for directories",
         "author": "@ryan_ritchie"
     }

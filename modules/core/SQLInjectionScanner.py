@@ -20,6 +20,7 @@ class SQLInjectionScanner(InjectionScannerBase):
         "name":             "SQL Injection Scanner",
         "desc":             "Scan the web application for SQL injections",
         "reportable":       True,
+        "generate":         True,
         "db_table_name":    "sql_injections",
         "wordlist_name":    "sql_injection",
         "author":           "@ryan_ritchie",

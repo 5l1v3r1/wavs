@@ -14,6 +14,9 @@ class BaseModule:
         """ use generative model to generate a wordlist based upon a wordlist's
             default wordlist
         """
+        if not self.info['generate']:
+            return
+
         # load in text to be trained
         text_list = self.main.db.get_wordlist(self.info['wordlist_name'])
 

@@ -15,6 +15,7 @@ class CrossSiteScripting_Reflected(InjectionScannerBase):
         "name":             "Cross Site Scripting - Reflected",
         "desc":             "Checks for cross site scripting vulnerabilities",
         "reportable":       True,
+        "generate":         True,
         "db_table_name":    "xss_discovered_reflected",
         "wordlist_name":    "xss_injection",
         "author":           "@ryan_ritchie",

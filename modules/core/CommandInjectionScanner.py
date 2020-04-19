@@ -11,6 +11,7 @@ class CommandInjectionScanner(InjectionScannerBase):
         "name":             "Command Injection Scanner",
         "desc":             "Checks for OS command injection",
         "reportable":       True,
+        "generate":         True,
         "db_table_name":    "os_injection_discovered",
         "wordlist_name":    "os_injection",
         "author":           "@ryan_ritchie",

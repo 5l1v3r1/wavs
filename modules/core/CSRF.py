@@ -9,6 +9,7 @@ class CSRF(BaseModule):
     info = {
         "name": "Cross Site Request Forgery",
         "reportable": True,
+        "generate": True,
         "db_table_name": "csrf_discovered",
         "wordlist_name": "csrf",
         "desc": "Searches for the lack of anti-csrf tokens in forms",

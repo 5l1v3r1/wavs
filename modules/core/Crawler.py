@@ -13,6 +13,7 @@ class Crawler(BaseModule):
         "name": "Site Crawler",
         "db_table_name": "files_discovered",
         "reportable": False,
+        "generate":   False,
         "desc": "Crawls through links to find new pages",
         "author": "@ryan_ritchie"
     }
@@ -125,6 +126,9 @@ class Crawler(BaseModule):
 
         # get found pages
         self.found_pages = self._get_previous_results('FileScanner')
+
+        if not self.found_pages:
+            self.found_pages = ['/']
 
         if self.main.options['manual_crawl']:
             self.manual_found_pages = self.found_pages

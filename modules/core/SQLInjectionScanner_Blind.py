@@ -19,6 +19,7 @@ class SQLInjectionScanner_Blind(SQLInjectionScanner):
         "name":             "SQL Injection Scanner - Blind",
         "desc":             "Scan the web application for blind SQL injections",
         "reportable":       True,
+        "generate":         False,
         "db_table_name":    "sql_blind_injection",
         "wordlist_name":    "sql_blind",
         "author":           "@ryan_ritchie",

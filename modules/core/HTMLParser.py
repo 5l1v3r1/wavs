@@ -12,6 +12,7 @@ class HTMLParser(BaseModule):
         "name": "HTML Parser",
         "db_table_name": "parameters_discovered",
         "reportable": False,
+        "generate":   False,
         "desc": "Takes a webpage and parses the HTML to find params to inject",
         "author": "@ryan_ritchie"
     }

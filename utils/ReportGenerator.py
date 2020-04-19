@@ -104,7 +104,7 @@ class PDFReportGenerator(BaseGenerator):
         BaseGenerator.__init__(self, main, scan_id)
         self.type = 'pdf'
 
-        self.html_gen = HTMLReportGenerator(main)
+        self.html_gen = HTMLReportGenerator(main, scan_id)
 
     def render(self):
         html = self.html_gen.render()

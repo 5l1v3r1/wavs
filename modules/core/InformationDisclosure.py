@@ -10,6 +10,7 @@ class InformationDisclosure(BaseModule):
         "name":             "Information Disclosure",
         "db_table_name":    "info_disc_discovered",
         "reportable":       True,
+        "generate":         False,
         "wordlist_name":    "info_disclosure",
         "desc":             "Scans for files that should not be accessible",
         "author":           "@ryan_ritchie",

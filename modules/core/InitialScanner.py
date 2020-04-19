@@ -13,6 +13,7 @@ class InitialScanner(BaseModule):
     info = {
         "name":         "Initial Scanner",
         "reportable":   False,
+        "generate":     False,
         "desc":         "Does some initial scans on the web application to \
                          determine if its available, if it returns normal \
                          status codes etc",

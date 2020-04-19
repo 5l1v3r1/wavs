@@ -15,11 +15,7 @@ class DBManager:
     def __init__(self):
         self.db_paths = {}
 
-        # test db
-        self.db_paths['wordlist'] = 'database/wordlists_test.db'
-
-        # production db
-        # self.db_paths['wordlist'] = 'database/wordlists_prod.db'
+        self.db_paths['wordlist'] = 'database/wordlists.db'
 
         # the database to hold scan results
         self.db_paths['scan_results'] = 'database/scans.db'

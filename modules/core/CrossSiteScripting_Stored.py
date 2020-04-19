@@ -6,7 +6,13 @@ from modules.core.InjectionScannerBase import InjectionScannerBase
 
 
 class CrossSiteScripting_Stored(InjectionScannerBase):
-    """
+    """ This module is used to scan for cross site scripting.
+
+        Inserts payloads into parameters, then checks the webpage for patterns
+        which show target is vulnerable.
+
+        Args:
+            main:   instance of WebScanner
     """
 
     info = {
@@ -46,11 +52,27 @@ class CrossSiteScripting_Stored(InjectionScannerBase):
         InjectionScannerBase.__init__(self, main)
 
     def _run_thread(self, param):
+        """ Checks for stored XSS by inserting a payload into parameter,
+            checking the payload exists on the resulting webpage, then makes
+            a request again to see if the payload still exists. If the payload
+            is still on the webpage it is assumed to be vulnerable.
+
+            Args:
+                param:  the parameter to inject payloads into
+
+            Returns:
+                a dict containing details about a vulnerable parameter
+        """
+        # the HTTP method for the request
         method = param['method'].upper()
+
+        # the webpage for the request
         page = param['action']
 
         self.injections = []
         self.injectable_params = []
+
+        # the parameters to inject into
         inject_params = param['params']
 
         assert(hasattr(self, "attack_strings"))
@@ -59,8 +81,12 @@ class CrossSiteScripting_Stored(InjectionScannerBase):
         if method == 'GET':
             url = self._construct_get_url(page, inject_params)
 
+            # loop through each injectable parameter
             for p in inject_params:
+
+                # loop through each payload
                 for injection in attack_strings:
+                    # inject the payload into the parameter
                     final_url = url.replace(f'{p}=test', f'{p}={injection}')
 
                     # the first request sends the payload
@@ -75,29 +101,47 @@ class CrossSiteScripting_Stored(InjectionScannerBase):
             # construct the url to make the request to
             url = f'{self.main.get_host_url_base()}/{page}'
 
+            # loop through each parameter
             for p in inject_params:
                 params = self._construct_post_params(inject_params)
 
+                # loop through each payload
                 for injection in attack_strings:
+                    # inject the payload into the parameter
                     params[p] = injection
 
+                    # make the first request with the payload
                     first = http_post_request(url, params, self.main.cookies)
+
+                    # make a normal request without payload
                     second = http_post_request(url, {}, self.main.cookies)
 
-                    if self._check_page_content(method, injection, p, page, second.text):
+                    # check if the payload still exists after second request
+                    if self._check_page_content(
+                        method,
+                        injection,
+                        p,
+                        page,
+                        second.text):
                         break
 
         return self.injectable_params
 
     def run_module(self):
+        """ Loads the attack strings from the database, and runs multiple
+            processes
+
+            Args:
+                None
+
+            Returns:
+                None
+        """
         info("Searching for cross site scripting (stored)...")
 
-        # load in a list of lfi attach strings
-        #self.attack_strings = self.main.db.get_wordlist(
-        #    self.info['wordlist_name'])
-
-        self.attack_strings = ['<script>alert(1)</script>',
-                               '<img srx="x" onerror="alert(1)>"']
+        # load in the payloads
+        self.attack_strings = self.main.db.get_wordlist(
+            self.info['wordlist_name'])
 
         # the search strings will be the attack strings themselves
         # because python will not interpret any javascript

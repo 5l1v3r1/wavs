@@ -6,9 +6,13 @@ from modules.core.InjectionScannerBase import InjectionScannerBase
 
 
 class CrossSiteScripting_Reflected(InjectionScannerBase):
-    """ This module is used to scan for local file inclusions, it does this by
-        inserting file paths in parameters and checking the resulting page to
-        see if the file contents are on the page.
+    """ This module is used to scan for cross site scripting.
+
+        Inserts payloads into parameters, then checks the webpage for patterns
+        which show target is vulnerable.
+
+        Args:
+            main:   instance of WebScanner
     """
 
     info = {
@@ -48,6 +52,17 @@ class CrossSiteScripting_Reflected(InjectionScannerBase):
         InjectionScannerBase.__init__(self, main)
 
     def run_module(self):
+        """ Performs the actual scanning of the target application.
+
+            Loads in the payloads, patterns and calls the _run_thread method
+            to inject payloads into parameters.
+
+            Args:
+                None
+
+            Returns:
+                None
+        """
         info("Searching for cross site scripting (reflected)...")
 
         # load in a list of lfi attach strings

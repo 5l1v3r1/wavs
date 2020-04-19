@@ -8,11 +8,8 @@ class SQLInjectionScanner_Blind(SQLInjectionScanner):
         it does this by injecting SQL 'attack' strings into parameters and
         checking the resulting webpage for SQL error messages.
 
-        @depends on: HTMLParser
-            - this module requires the HTMLParser module to be run before it
-              so that it has a list of injectable parameters
-
-        TODO: need to test for blind SQL attacks
+        Args:
+            main:   instance of WebScanner
     """
 
     info = {
@@ -49,6 +46,16 @@ class SQLInjectionScanner_Blind(SQLInjectionScanner):
         SQLInjectionScanner.__init__(self, main)
 
     def _run_thread(self, param):
+        """ Checks for blind SQL injections by injecting payloads into
+            parameters and checking the timing of the response from the server.
+
+            Args:
+                param:  the parameter to inject payloads into
+
+            Returns:
+                dict containing information about vulnerable parameter,
+                or None if not vulnerable
+        """
         method = param['method']
         page = param['action']
 
@@ -113,6 +120,15 @@ class SQLInjectionScanner_Blind(SQLInjectionScanner):
         return self.injectable_params
 
     def run_module(self):
+        """ Loads the attack strings from the database, and runs multiple
+            processes
+
+            Args:
+                None
+
+            Returns:
+                None
+        """
         info('Searching for SQL blind injections...')
 
         # get the injectable params

@@ -9,6 +9,14 @@ from utils.InterceptingProxy import InterceptingProxy
 
 
 class Crawler(BaseModule):
+    """ Implements link crawling of a target web application.
+
+        Crawls links recursively, or uses a proxy to let user manually crawl
+        the target.
+
+        Args:
+            main:   instance of the WebScanner
+    """
     info = {
         "name": "Site Crawler",
         "db_table_name": "files_discovered",
@@ -22,6 +30,15 @@ class Crawler(BaseModule):
         BaseModule.__init__(self, main)
 
     def _parse_link(self, page, link):
+        """ Get the base webpage from a link.
+
+            Args:
+                page:   the webpage the link is found on
+                link:   the hyperlink
+
+            Returns:
+                a link with extraneous information removed
+        """
         # remove blanks and param links
         if not link or link[0] == '?':
             return
@@ -51,6 +68,14 @@ class Crawler(BaseModule):
                 return linked_page
 
     def _parse_links(self, page):
+        """ Get all the links on a webpage.
+
+            Args:
+                page:   the html of a webpage
+
+            Returns:
+                a list of all links found on the webpage
+        """
         if page[0] == '/':
             page = page[1:]
 
@@ -82,6 +107,15 @@ class Crawler(BaseModule):
         return return_links
 
     def proxy_response_handle(self, resp, path):
+        """ Parses a response from the proxy.
+
+            Args:
+                resp:   the response from proxy. from 'requests' module
+                path:   the path to the webpage for the request
+
+            Returns:
+                None
+        """
         if self.main.base_dir in path:
             path = path.replace(self.main.base_dir, '/')
 
@@ -111,6 +145,14 @@ class Crawler(BaseModule):
                         success(f'Found new page: {path}', prepend='    ')
 
     def auto_crawl(self):
+        """ recursively crawls all the links in a web application.
+
+            Args:
+                None
+
+            Returns:
+                None
+        """
         # loop through all pages found so far
         loop_pages = self.found_pages
         for page in loop_pages:
@@ -122,29 +164,44 @@ class Crawler(BaseModule):
         self._save_scan_results(loop_pages, update_count=False)
 
     def run_module(self):
+        """ Performs the actual scanning of the target application.
+
+            Either automatically crawls the target application for links, or
+            sets up a proxy so that user can manually crawl the target.
+
+            Args:
+                None
+
+            Returns:
+                None
+        """
         info('Crawling links...')
 
         # get found pages
         self.found_pages = self._get_previous_results('FileScanner')
 
+        # if there are no found pages, use the default path
         if not self.found_pages:
             self.found_pages = ['/']
 
+        # if the manual crawl option is set
         if self.main.options['manual_crawl']:
             self.manual_found_pages = self.found_pages
             proxy_port = self.main.options['proxy_port']
 
-            # TODO: make config variable for port
             highlight(f'Proxy server started on http://127.0.0.1:{proxy_port}',
                       prepend='  ')
             highlight('Use browser to crawl target. CTRL+C to exit.',
                       prepend='  ')
 
+            # set up the interceptin proxy and start it
             proxy = InterceptingProxy(self.main.host, proxy_port, self)
             proxy.start()
 
             self._save_scan_results(self.manual_found_pages, update_count=False)
 
+            # automatically crawl the target
             self.auto_crawl()
         else:
+            # automatically crawl the target
             self.auto_crawl()

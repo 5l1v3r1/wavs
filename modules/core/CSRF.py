@@ -64,7 +64,11 @@ class CSRF(BaseModule):
         """ method that loads in a file wordlist and uses thread to search for
             the files
 
-            :return:
+            Args:
+                None
+
+            Returns:
+                None
         """
 
         info('Searching for CSRF...')

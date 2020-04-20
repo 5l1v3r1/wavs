@@ -1,3 +1,4 @@
+tensorflow
 requests
 colorama
 sqlite3

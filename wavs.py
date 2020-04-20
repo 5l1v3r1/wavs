@@ -108,6 +108,14 @@ scan_parser.add_argument(
     action='store_true',
     help='The path to save the report to')
 
+scan_parser.add_argument(
+    '--save_ext',
+    type=str,
+    default='html',
+    choices=['html', 'txt', 'pdf'],
+    help='Set the extension to save the report as'
+)
+
 ################################################
 # command line arguments for generator command #
 ################################################

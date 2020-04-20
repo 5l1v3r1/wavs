@@ -2,9 +2,13 @@ from conf import config
 from util_functions import info, success, warning
 import datetime
 import textwrap
-from weasyprint import HTML
 from html import escape
 
+try:
+    from weasyprint import HTML
+except:
+    warning('GTK not installed. Cant create PDF reports')
+    HTML = {}
 
 class ReportGenerator:
     def __init__(self, main):

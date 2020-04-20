@@ -1,0 +1,7 @@
+requests
+colorama
+beautifulsoup4
+textgenrnn
+tinydb
+Weasyprint
+pytest
